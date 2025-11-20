@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 import numpy as np
 
-from condorgame.pyth import shared_pyth_hermes
+from condorgame.price_provider import shared_pricedb
 from condorgame.tracker import TrackerBase
 from condorgame.tracker_evaluator import TrackerEvaluator
 
@@ -86,8 +86,6 @@ if __name__ == "__main__":
     STEP = 300
     # How often we evaluate the tracker (in seconds)
     INTERVAL = 3600
-    # Resolution of the price time series requested to the API
-    resolution = "5minute"
 
     # End timestamp for the test data
     evaluation_end: datetime = datetime.now(timezone.utc)
@@ -99,13 +97,13 @@ if __name__ == "__main__":
 
     ## Load the last N days of price data (test period)
     test_asset_prices = load_test_prices_once(
-        assets, shared_pyth_hermes, evaluation_end, days=days, resolution=resolution
-        )
+        assets, shared_pricedb, evaluation_end, days=days
+    )
 
     ## Provide the tracker with initial historical data (for the first tick):
     ## load prices from the last H days up to N days ago
     initial_histories = load_initial_price_histories_once(
-        assets, shared_pyth_hermes, evaluation_end, days_history=days_history, days_offset=days, resolution=resolution
+        assets, shared_pricedb, evaluation_end, days_history=days_history, days_offset=days
     )
 
     # Run live simulation on historic data

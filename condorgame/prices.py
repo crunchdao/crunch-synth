@@ -65,7 +65,7 @@ class PriceStore:
         for symbol, entries in data.items():
             self.add_prices(symbol, entries)
 
-    def get_prices(self, asset: str, days: int | None = None, resolution: int = 300):
+    def get_prices(self, asset: str, days: int | None = None, resolution: int = 60):
         """
         Quickly retrieve (timestamp, price) pairs spaced by `resolution` seconds.
         Stored data has a 60-second granularity.
