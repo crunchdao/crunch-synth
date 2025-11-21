@@ -5,7 +5,7 @@ import json
 import pandas as pd
 import plotly.express as px
 
-def load_test_prices_once(assets, shared_pyth_client, evaluation_end, days=30, resolution="5minute"):
+def load_test_prices_once(assets, pricedb, evaluation_end, days=30):
     """
     Load the test price data
 
@@ -19,17 +19,16 @@ def load_test_prices_once(assets, shared_pyth_client, evaluation_end, days=30, r
     test_asset_prices = {}
 
     for asset in assets:
-        test_asset_prices[asset] = shared_pyth_client.get_price_history(
+        test_asset_prices[asset] = pricedb.get_price_history(
             asset=asset,
             from_=from_,
             to=to,
-            resolution=resolution,
         )
 
     return test_asset_prices
 
 
-def load_initial_price_histories_once(assets, shared_pyth_client, evaluation_end, days_history=30, days_offset=30, resolution="5minute"):
+def load_initial_price_histories_once(assets, pricedb, evaluation_end, days_history=30, days_offset=30):
     """
     Load initial historical data for the tracker (e.g., the 30 days BEFORE the test window)
 
@@ -50,11 +49,10 @@ def load_initial_price_histories_once(assets, shared_pyth_client, evaluation_end
     histories = {}
 
     for asset in assets:
-        histories[asset] = shared_pyth_client.get_price_history(
+        histories[asset] = pricedb.get_price_history(
             asset=asset,
             from_=from_test - timedelta(days=days_history),
             to=from_test,
-            resolution=resolution,
         )
 
     return histories
