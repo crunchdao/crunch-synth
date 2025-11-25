@@ -2,6 +2,7 @@ pandas
 requests
 numpy
 densitypdf
+properscoring
 
 # required only for debugging
 plotly
