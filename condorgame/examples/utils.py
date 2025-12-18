@@ -181,7 +181,7 @@ def plot_tracker_comparison(df_all, asset=None):
         x="time",
         y="score",
         color="tracker",
-        title=f"Tracker Comparison {asset} — CRPS Over Time",
+        title=f"Tracker Comparison {asset} — Normalized CRPS Over Time",
     )
 
     fig.update_traces(mode="lines+markers")

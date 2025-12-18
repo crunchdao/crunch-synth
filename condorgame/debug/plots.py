@@ -115,7 +115,7 @@ def plot_quarantine(asset, quarantine_entry, name_step: str, prices: PriceStore,
         line=dict(width=0),
         fill='tonexty',
         fillcolor='rgba(255,165,0,0.3)',
-        name=f"Predicted price range ({round(100*(simulations["quantile_range"][1] - simulations["quantile_range"][0]))}%)"
+        name=f"Predicted range ({round(100*(simulations["quantile_range"][1] - simulations["quantile_range"][0]))}%)"
     ))
 
     # Mean prediction line with shadow effect
