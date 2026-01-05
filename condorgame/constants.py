@@ -5,7 +5,7 @@ Constants used across the condor game package.
 # ------------------------------------------------------------------
 # CRPS integration bounds configuration
 #
-# crps_bounds[horizon]["t"][asset] defines the BASE integration half-width
+# crps_bounds["t"][asset] defines the BASE integration half-width
 # used when computing the CRPS integral:
 #
 #     CRPS = ∫ (F(z) - 1[z ≥ x])² dz ,  z ∈ [t_min, t_max]
