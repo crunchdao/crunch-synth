@@ -25,6 +25,12 @@ class TrackerBase(abc.ABC):
             "BTC": [(ts1, p1), (ts2, p2)],
             "SOL": [(ts1, p1)],
         }
+
+        The tick() method is called whenever new market data arrives:
+        When it's called:
+        - Typically every minute or when new data is available
+        - Before any prediction request
+        - Can be called multiple times before a predict
         """
         self.prices.add_bulk(data)
 

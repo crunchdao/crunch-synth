@@ -63,17 +63,21 @@ A tracker is a model that processes real-time asset data to predict future price
 To create your tracker, you need to define a class that implements the `TrackerBase` interface. Specifically, your class must implement the following methods:
 
 1. **`tick(self, data: PriceData)`**  
-   This method is called whenever new price data arrives. Use this method to update your internal state or model.
+    This method is called whenever new price data arrives. Use this method to update your internal state or model.
 
-   Data example:
+    Data example:
      ```python
       data = {
             "BTC": [(timestamp1, price1), (timestamp2, price2)],
             "SOL": [(timestamp1, price1)],
         }
      ```
+    When it's called:
+    - Typically every minute or when new data is available
+    - Before any prediction request
+    - Can be called multiple times before a predict
 2. **`predict(self, asset: str, horizon: int, step: int)`**  
-   This method should return a sequence of density predictions for the asset's price changes on an horizon with step. Each density prediction must comply with the [density_pdf](https://github.com/microprediction/densitypdf/blob/main/densitypdf/__init__.py) specification.
+    This method should return a sequence of density predictions for the asset's price changes on an horizon with step. Each density prediction must comply with the [density_pdf](https://github.com/microprediction/densitypdf/blob/main/densitypdf/__init__.py) specification.
 
 You can refer to the [Tracker examples](condor_forecast/examples) for guidance.
 
