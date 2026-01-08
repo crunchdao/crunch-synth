@@ -58,12 +58,28 @@ Here is the **return forecast mapped into price space**:
 
 ## Create your Tracker
 
-A tracker is a model that processes real-time asset data to predict future price changes. It uses past prices to generate a probabilistic forecast of incremental returns. You can use the data provided by the challenge or any other datasets to improve your predictions.
+A **tracker** is a model that processes real-time asset data to **predict future price changes**. It uses past prices to generate a probabilistic forecast of incremental returns. You can use the data provided by the challenge or any other datasets to improve your predictions.
 
-To create your tracker, you need to define a class that implements the `TrackerBase` interface. Specifically, your class must implement the following methods:
+It operates incrementally: prices are pushed to the tracker as they arrive and predictions are requested at specific times by the framework.
 
-1. **`tick(self, data: PriceData)`**  
-    This method is called whenever new price data arrives. Use this method to update your internal state or model.
+**To create your tracker, you need to define a class that implements the `TrackerBase` interface, which already handles:**
+
+- price storage and alignment via `PriceStore`
+- multi-resolution forecasting through `predict_all()`
+
+As a participant, you only need to implement **one method**: `predict()`.
+
+1. **Price data handling (already provided)**  
+
+    Each tracker instance contains a `PriceStore` (`self.prices`) that:
+    - stores recent historical prices per asset
+    - maintains a rolling time window (30 days)
+    - provides convenient accessors such as:
+        - `get_last_price()`
+        - `get_prices(asset, days, resolution)`
+        - `get_closest_price(asset, timestamp)`
+
+    The framework automatically updates the `PriceStore` by calling `tick(self, data: PriceData)` before any prediction request.
 
     Data example:
      ```python
@@ -72,12 +88,28 @@ To create your tracker, you need to define a class that implements the `TrackerB
             "SOL": [(timestamp1, price1)],
         }
      ```
+
     When it's called:
     - Typically every minute or when new data is available
     - Before any prediction request
     - Can be called multiple times before a predict
-2. **`predict(self, asset: str, horizon: int, step: int)`**  
-    This method should return a sequence of density predictions for the asset's price changes on an horizon with step. Each density prediction must comply with the [density_pdf](https://github.com/microprediction/densitypdf/blob/main/densitypdf/__init__.py) specification.
+
+2. **Required method: `predict(self, asset: str, horizon: int, step: int)`**  
+    This is the **only method you must implement.**
+
+    It must return a sequence of **predictive density distributions** for the **incremental price change** of an asset:
+
+    - Forecast horizon: horizon seconds into the future
+    - Temporal resolution: one density every step seconds
+    - Output length: horizon // step
+    
+    Each density prediction must comply with the [density_pdf](https://github.com/microprediction/densitypdf/blob/main/densitypdf/__init__.py) specification.
+    
+3. **Multi-step forecasts (handled automatically)**
+
+    You **do not** need to implement multi-step logic.
+
+    The framework will automatically call your `predict()` method multiple times via `predict_all(asset, horizon, steps)` to construct forecasts at different temporal resolutions.
 
 You can refer to the [Tracker examples](condor_forecast/examples) for guidance.
 
@@ -157,7 +189,9 @@ All required forecasts for a prediction round must be generated within **40 seco
 ## Scoring
 - Once the full horizon has passed, each prediction is scored using a **CRPS scoring function**.
 - A lower **CRPS score** reflects more accurate predictions.
-- Leaderboard ranking is based on a **7-day rolling average** of CRPS scores across **all assets and horizons.**
+- Leaderboard ranking is based on a **7-day rolling average** of scores across **all assets and horizons**, evaluated **relative to other participants**:
+  - for each prediction round, the **best CRPS score receives a normalized score of 1**
+  - the **worst 5% of CRPS scores receive a score of 0**
 
 ## Check your Tracker performance
 
