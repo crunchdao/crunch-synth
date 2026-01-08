@@ -38,26 +38,27 @@ class TrackerEvaluator:
         self.tracker.tick(data)
 
 
-    def predict(self, asset: Asset, horizon: int, step_config: dict):
+    def predict(self, asset: Asset, horizon: int, steps: list[int]):
         """
         Request multi-resolution predictions and evaluate them when realized.
         """
-        predictions = self.tracker.predict_all(asset, horizon, step_config)
+        predictions = self.tracker.predict_all(asset, horizon, steps)
         # add check of prediction
-        for name, step in step_config.items():
+        for step in steps:
             if step > horizon:
                 continue
+            name = str(step)
             expected_len = horizon // step
             if name not in predictions:
-                raise ValueError(f"Missing predictions for {name}")
+                raise ValueError(f"Missing predictions for step {name}")
             if len(predictions[name]) != expected_len:
                 raise ValueError(
-                    f"Prediction length mismatch for {name}: "
+                    f"Prediction length mismatch for step {name}: "
                     f"{len(predictions[name])} != {expected_len}"
                 )
 
         ts, _ = self.tracker.prices.get_last_price(asset)
-        self.quarantine_group.add(asset, ts, predictions, horizon, step_config)
+        self.quarantine_group.add(asset, ts, predictions, horizon, steps)
         quarantines_predictions = self.quarantine_group.pop(asset, ts)
 
         if not quarantines_predictions:
@@ -80,9 +81,9 @@ class TrackerEvaluator:
         # Iterate over all quarantines
         # quar_ts             : reference timestamp of the quarantine
         # quar_predictions    : dict of predictions per step (5m, 1h, 6h, ...)
-        # quar_step_config    : mapping {step_name -> step_seconds}
+        # quar_steps    : mapping {step_name -> step_seconds}
         # ------------------------------------------------------------------
-        for quar_ts, quar_predictions, quar_step_config in quarantines_predictions:
+        for quar_ts, quar_predictions, quar_steps in quarantines_predictions:
 
             total_score = 0.0
 
@@ -90,7 +91,8 @@ class TrackerEvaluator:
             # Score predictions at each temporal resolution independently
             # (e.g. 5min, 1hour, 6hour, 24hour)
             # --------------------------------------------------------------
-            for name, step in quar_step_config.items():
+            for step in quar_steps:
+                name = str(step)
 
                 preds = quar_predictions[name]
 
@@ -173,7 +175,7 @@ class TrackerEvaluator:
         return float(np.mean(all_scores))
 
     
-    def to_json(self, horizon: int, step_config: dict, interval: int, base_dir="results"):
+    def to_json(self, horizon: int, steps: list[int], interval: int, base_dir="results"):
         """Save crps scores and metadata to a JSON file."""
         tracker_name = self.tracker.__class__.__name__
 
@@ -196,7 +198,7 @@ class TrackerEvaluator:
                 "end": end_ts,
             },
             "horizon": horizon,
-            "step_config": step_config,
+            "steps": steps,
             "interval": interval,
             "asset_scores": assets_json,
         }

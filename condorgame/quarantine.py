@@ -13,7 +13,7 @@ class Quarantine:
     def __init__(self):
         self.quarantine: List[QuarantineEntry] = []  # Stores tuples (release_time, value, step)
 
-    def add(self, time: int, value, horizon: int, step_config: dict) -> None:
+    def add(self, time: int, value, horizon: int, steps: list[int]) -> None:
         """
         Adds a new value to the quarantine list.
         The value will become available for prediction processing at `time + horizon`.
@@ -25,13 +25,13 @@ class Quarantine:
         value : any
             The value to quarantine.
         horizon : int
-            The number of time steps before the value is released.
-        step : dict
+            The number of time before the value is released.
+        steps : list[int]
             Additional step-related metadata.
         """
         release_time = time + horizon
         # Insert while maintaining sorted order for `release_time`
-        insort(self.quarantine, (release_time, value, step_config))
+        insort(self.quarantine, (release_time, value, steps))
 
     def pop(self, current_time: int) -> List[QuarantineEntry]:
         """
@@ -84,12 +84,12 @@ class QuarantineGroup:
             self.groups[asset] = Quarantine()
         return self.groups[asset]
 
-    def add(self, asset: str, time: int, value, horizon: int, step_config: dict) -> None:
+    def add(self, asset: str, time: int, value, horizon: int, steps: list[int]) -> None:
         """
         Adds a value to the quarantine for the given asset.
         """
         q = self._get_or_create(asset)
-        q.add(time, value, horizon, step_config)
+        q.add(time, value, horizon, steps)
 
     def pop(self, asset: str, current_time: int) -> List[QuarantineEntry]:
         """

@@ -70,7 +70,7 @@ class TrackerBase(abc.ABC):
         """
         pass
 
-    def predict_all(self, asset: Asset, horizon: int, step_config: dict):
+    def predict_all(self, asset: Asset, horizon: int, steps: list[int]):
         """
         Generate predictive distributions at multiple time resolutions
         for a fixed prediction horizon.
@@ -78,19 +78,18 @@ class TrackerBase(abc.ABC):
         Returns:
             dict[str, list[dict]]:
                 {
-                    "5min":   [...],
-                    "1hour":  [...],
-                    "6hour":  [...],
-                    "24hour": [...]
+                    "300":   [...],
+                    "3600":  [...],
+                    "21600":  [...],
+                    "86400": [...]
                 }
         """
         predictions = {}
 
-        for name, step in step_config.items():
+        for step in steps:
             if step > horizon:
                 continue
 
-            preds = self.predict(asset=asset, horizon=horizon, step=step)
-            predictions[name] = preds
+            predictions[str(step)] = self.predict(asset=asset, horizon=horizon, step=step)
 
         return predictions

@@ -184,6 +184,7 @@ def load_scores_json(path: str):
 def scores_json_to_df(scores_json):
     # start = scores_json["period"]["start"]
     # interval = scores_json["interval"]
+    horizon = scores_json["horizon"]
 
     rows = []
     tracker_name = scores_json["tracker"]
@@ -193,6 +194,7 @@ def scores_json_to_df(scores_json):
             rows.append({
                 "tracker": tracker_name,
                 "asset": asset,
+                "horizon": horizon,
                 "ts": score_data["ts"],
                 "score": score_data["score"],
             })
@@ -214,6 +216,7 @@ def load_all_results(current_results_directory, horizon=None):
     else:
         pattern = f"*h{horizon}.json"
     search_path = os.path.join(current_results_directory, pattern)
+    print(f"Directory: {search_path}")
 
     # Find matching files
     files = glob.glob(search_path)

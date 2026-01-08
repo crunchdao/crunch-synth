@@ -178,8 +178,8 @@ tracker_evaluator = TrackerEvaluator(GaussianStepTracker())
 # Feed a new price tick for SOL
 tracker_evaluator.tick({"SOL": [(ts, price)]})
 # You will generate predictive densities for SOL over a 24-hour period (86400s) at multiple step resolutions: 5 minutes, 1 hour, 6 hours and 24 hours
-predictions = tracker_evaluator.predict("SOL", horizon=86400,
-                                        step_config={"5min":300, "1hour":3600, "6hour":21600, "24hour":86400})
+predictions = tracker_evaluator.predict("SOL", horizon=3600*24,
+                                        steps=[300, 3600, 3600*6, 3600*24])
 
 print(f"My overall CRPS score: {tracker_evaluator.overall_crps_score("SOL"):.4f}")
 print(f"My recent CRPS score: {tracker_evaluator.recent_crps_score("SOL"):.4f}")

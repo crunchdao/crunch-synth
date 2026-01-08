@@ -4,7 +4,7 @@ import numpy as np
 from condorgame.debug.densitytosimulations import simulate_paths
 from condorgame.prices import PriceStore
 
-def plot_quarantine(asset, quarantine_entry, name_step: str, prices: PriceStore, mode="direct", title="", lookback_seconds=3600):
+def plot_quarantine(asset, quarantine_entry, step: int, prices: PriceStore, mode="direct", title="", lookback_seconds=3600):
     """
     Plot the predicted price/return distribution (quarantine) for a given asset.
 
@@ -26,13 +26,14 @@ def plot_quarantine(asset, quarantine_entry, name_step: str, prices: PriceStore,
         Plot title.
     """
 
-    ts, predictions, step_config = quarantine_entry
+    ts, predictions, steps = quarantine_entry
 
+    name_step = str(step)
     if name_step not in predictions:
         return
 
     predictions = predictions[name_step]
-    step = step_config[name_step]
+    horizon = step * len(predictions)
 
     # Skip if the reference timestamp is after the last known price
     if ts > prices.get_last_price(asset)[0]:
@@ -92,7 +93,7 @@ def plot_quarantine(asset, quarantine_entry, name_step: str, prices: PriceStore,
 
     import plotly.graph_objects as go
 
-    title=f"Predicted {asset} {'return price' if mode=="direct" else "price"} distribution at {scales_df["time"].iloc[0]}"
+    title=f"Predicted {asset} {'return price' if mode=="direct" else "price"} distribution (horizon={horizon}s | step={name_step}s) at {scales_df["time"].iloc[0]}"
 
     # Create a filled band between q05 and q95
     fig = go.Figure()
