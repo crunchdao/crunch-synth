@@ -218,6 +218,12 @@ class TrackerEvaluator:
         return directory
 
 
+# NumPy 2.0 removed np.trapz → replaced by np.trapezoid
+if hasattr(np, "trapezoid"):
+    trapezoid = np.trapezoid
+else:
+    trapezoid = np.trapz
+    
 def crps_integral(density_dict, x, t_min=-4000, t_max=4000, num_points=256):
     """
     CRPS score (Integrated Quadratic Score) using:
@@ -242,4 +248,4 @@ def crps_integral(density_dict, x, t_min=-4000, t_max=4000, num_points=256):
 
     # Integrate squared error
     integrand = (cdfs - indicators)**2
-    return float(np.trapz(integrand, ts))
+    return float(trapezoid(integrand, ts))
