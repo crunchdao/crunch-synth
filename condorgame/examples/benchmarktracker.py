@@ -9,7 +9,7 @@ from condorgame.tracker_evaluator import TrackerEvaluator
 
 class GaussianStepTracker(TrackerBase):
     """
-    A benchmark tracker that models *future incremental returns* as Gaussian-distributed.
+    An example tracker that models *future incremental returns* as Gaussian-distributed.
 
     For each forecast step, the tracker returns a normal distribution
     r_{t,step} ~ N(a · mu, √a · sigma) where:
@@ -97,7 +97,8 @@ if __name__ == "__main__":
     from condorgame.examples.utils import load_test_prices_once, load_initial_price_histories_once, count_evaluations
 
     # Setup tracker + evaluator
-    tracker_evaluator = TrackerEvaluator(GaussianStepTracker())
+    tracker = GaussianStepTracker()
+    tracker_evaluator = TrackerEvaluator(tracker)
 
     # For each asset and historical timestamp, generate density forecasts
     # over a fixed forecast horizon (e.g. 24h or 1h) at multiple temporal
@@ -143,17 +144,18 @@ if __name__ == "__main__":
 
     for asset, history_price in test_asset_prices.items():
 
-        # First tick: initialize historical data
+        # First tick: initialize the full historical data (prices before test prices)
+        # This initializes the tracker state before evaluation begins.
         tracker_evaluator.tick({asset: initial_histories[asset]})
 
         prev_ts = 0
         predict_count = 0
         pbar = tqdm(desc=f"Evaluating {asset}", total=count_evaluations(history_price, HORIZON, INTERVAL), unit="eval")
         for ts, price in history_price:
-            # Feed the new tick
+            # Feed the new test price tick
             tracker_evaluator.tick({asset: [(ts, price)]})
 
-            # Evaluate prediction every hour (ts is in second)
+            # Trigger a prediction round at the configured interval (ts is in second)
             if ts - prev_ts >= INTERVAL:
                 prev_ts = ts
                 predictions_evaluated = tracker_evaluator.predict(asset, HORIZON, STEPS)
@@ -183,6 +185,7 @@ if __name__ == "__main__":
                     )
                 predict_count += 1
         
+        # Final summary for this asset
         pbar.write(
                 f"[{asset}] avg norm CRPS={tracker_evaluator.overall_crps_score_asset(asset):.4f} | "
                 f"recent={tracker_evaluator.recent_crps_score_asset(asset):.4f}"
@@ -191,6 +194,7 @@ if __name__ == "__main__":
         pbar.close()
         print()
 
+    # Global summary across all assets
     tracker_name = tracker_evaluator.tracker.__class__.__name__
     print(f"\nTracker {tracker_name}:"
         f"\nFinal average normalized crps score: {tracker_evaluator.overall_crps_score():.4f}")

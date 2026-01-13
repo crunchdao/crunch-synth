@@ -4,7 +4,11 @@ Condor game is a real-time probabilistic forecasting challenge hosted by CrunchD
 
 The goal is to anticipate how asset prices will evolve by providing not a single forecasted value, but a full probability distribution over the future price change at multiple forecast horizons and steps.
 
-**The current crypto assets to model are Bitcoin (BTC), Ethereum (ETH), Solana (SOL) and Tether Gold (XAUT).**
+**The current crypto assets to model are:**
+- **Bitcoin (BTC)**
+- **Ethereum (ETH)**
+- **Solana (SOL)**
+- **Tether Gold (XAUT)**
 
 ## Install
 
@@ -116,7 +120,7 @@ You can refer to the [Tracker examples](condor_forecast/examples) for guidance.
 ```python
 class GaussianStepTracker(TrackerBase):
     """
-    A benchmark tracker that models *future incremental returns* as Gaussian-distributed.
+    An example tracker that models *future incremental returns* as Gaussian-distributed.
 
     For each forecast step, the tracker returns a normal distribution
     r_{t,step} ~ N(a · mu, √a · sigma) where:
@@ -124,8 +128,12 @@ class GaussianStepTracker(TrackerBase):
         - sigma = std historical return
         - a = (step / 300) represents the ratio of the forecast step duration to the historical 5-minute return interval.
 
-    This is not a price-distribution; it is a distribution over 
-    incremental returns between consecutive steps.
+    Multi-resolution forecasts (5min, 1h, 6h, 24h, ...)
+    are automatically handled by `TrackerBase.predict_all()`,
+    which calls the `predict()` method once per step size.
+
+    /!/ This is not a price-distribution; it is a distribution over 
+    incremental returns between consecutive steps /!/
     """
     def __init__(self):
         super().__init__()
@@ -133,6 +141,7 @@ class GaussianStepTracker(TrackerBase):
     def predict(self, asset: str, horizon: int, step: int):
 
         # Retrieve recent historical prices sampled at 5-minute resolution
+        resolution=300
         pairs = self.prices.get_prices(asset, days=5, resolution=300)
         if not pairs:
             return []
@@ -154,22 +163,31 @@ class GaussianStepTracker(TrackerBase):
 
         num_segments = horizon // step
 
-        # Produce one Gaussian for each future time step
-        # The returned list must be compatible with the `density_pdf` library.
+        # Construct one predictive distribution per future time step.
+        # Each distribution models the incremental return over a `step`-second interval.
+        #
+        # IMPORTANT:
+        # - The returned objects must strictly follow the `density_pdf` specification.
+        # - Each entry corresponds to the return between t + (k−1)·step and t + k·step.
+        #
+        # We use a single-component Gaussian mixture for simplicity:
+        #   r_{t,k} ~ N( (step / 300) · μ , sqrt(step / 300) · σ )
+        #
+        # where μ and σ are estimated from historical 5-minute returns.
         distributions = []
         for k in range(1, num_segments + 1):
             distributions.append({
-                "step": k * step,
+                "step": k * step,                      # Time offset (in seconds) from forecast origin
                 "type": "mixture",
                 "components": [{
                     "density": {
                         "type": "builtin",             # Note: use 'builtin' instead of 'scipy' for speed
                         "name": "norm",  
                         "params": {
-                            "loc": (step/300) * mu, 
-                            "scale": np.sqrt(step/300) * sigma}
+                            "loc": (step/resolution) * mu, 
+                            "scale": np.sqrt(step/resolution) * sigma}
                     },
-                    "weight": 1
+                    "weight": 1                        # Mixture weight — multiple densities with different weights can be combined
                 }]
             })
 
@@ -180,7 +198,7 @@ class GaussianStepTracker(TrackerBase):
 
 In each prediction round, players must submit **a set of density forecasts.**
 
-A prediction round is defined by **one asset, one forecast horizon** and **one or more step resolutions.**
+A **prediction round** is defined by **one asset, one forecast horizon** and **one or more step resolutions.**
 - A **24-hour horizon** forecast with **{5-minute, 1-hour, 6-hour, 24-hour}** increments is triggered **hourly** for each asset.
 - A **1-hour horizon** forecast with **{1-minute, 5-minute, 15-minute, 30-minute, 1-hour}** increments is triggered **every 12 minutes** for each asset.
 
@@ -189,7 +207,7 @@ All required forecasts for a prediction round must be generated within **40 seco
 ## Scoring
 - Once the full horizon has passed, each prediction is scored using a **CRPS scoring function**.
 - A lower **CRPS score** reflects more accurate predictions.
-- Leaderboard ranking is based on a **7-day rolling average** of scores across **all assets and horizons**, evaluated **relative to other participants**:
+- Leaderboard ranking is based on a **7-day rolling average** of CRPS scores across **all assets and horizons**, evaluated **relative to other participants**:
   - for each prediction round, the **best CRPS score receives a normalized score of 1**
   - the **worst 5% of CRPS scores receive a score of 0**
 
@@ -211,12 +229,12 @@ from condorgame.examples.benchmarktracker import GaussianStepTracker  # Your cus
 tracker_evaluator = TrackerEvaluator(GaussianStepTracker())
 # Feed a new price tick for SOL
 tracker_evaluator.tick({"SOL": [(ts, price)]})
-# You will generate predictive densities for SOL over a 24-hour period (86400s) at multiple step resolutions: 5 minutes, 1 hour, 6 hours and 24 hours
+# You will generate predictive densities for SOL over a 24-hour period (86400s) 
+# at multiple step resolutions: 5 minutes, 1 hour, 6 hours and 24 hours
 predictions = tracker_evaluator.predict("SOL", horizon=3600*24,
                                         steps=[300, 3600, 3600*6, 3600*24])
 
-print(f"My overall CRPS score: {tracker_evaluator.overall_crps_score("SOL"):.4f}")
-print(f"My recent CRPS score: {tracker_evaluator.recent_crps_score("SOL"):.4f}")
+print(f"My overall normalized CRPS score: {tracker_evaluator.overall_crps_score("SOL"):.4f}")
 ```
 
 
@@ -252,6 +270,7 @@ For example, you can try to forecast the target location by a gaussian density f
 ```python
 {
    "density": {
+      "type": "builtin",
       "name": "normal",
       "params": {"loc": y_mean, "scale": y_var}
    },
