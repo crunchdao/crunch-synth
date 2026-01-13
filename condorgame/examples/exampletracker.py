@@ -92,6 +92,7 @@ class GaussianStepTracker(TrackerBase):
 
 
 if __name__ == "__main__":
+    from condorgame.constants import FORECAST_PROFILES
     from condorgame.debug.plots import plot_quarantine, plot_prices, plot_scores
     from condorgame.examples.utils import load_test_prices_once, load_initial_price_histories_once, count_evaluations
 
@@ -103,40 +104,7 @@ if __name__ == "__main__":
     # resolutions and evaluate them against realized outcomes.
 
     # Assets to evaluate
-    assets = ["BTC", "SOL"] # Supported assets: "BTC", "SOL", "ETH", "XAU"
-
-    ###
-    # Forecast configuration (in seconds)
-    # Each profile defines:
-    # - a forecast horizon
-    # - a set of step resolutions
-    # - how often predictions are triggered
-
-    FORECAST_PROFILES = {
-        "24h": {
-            "horizon": 24 * 3600,  # 24 hours
-            # Multi-resolution forecast grid
-            # All forecasts span the same horizon but differ in temporal granularity.
-            "steps": [
-                        300,       # "5min"
-                        3600,      # "1hour"
-                        6 * 3600,  # "6hour"
-                        24 * 3600, # "24hour"
-            ],
-            "interval": 3600,  # triggered every hour
-        },
-        "1h": {
-            "horizon": 1 * 3600,  # 1 hour
-            "steps": [
-                        60,       # "1min"
-                        60 * 5,   # "5min"
-                        60 * 15,  # "15min"
-                        60 * 30,  # "30min"
-                        3600,     # "1hour"
-            ],
-            "interval": 60 * 12,  # triggered every 12 minutes
-        },
-    }
+    assets = ["BTC", "SOL"] # Supported assets: "BTC", "SOL", "ETH", "XAUT"
 
     # Select which forecast profile to evaluate
     ACTIVE_HORIZON = "24h"  # options: "24h", "1h"

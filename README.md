@@ -4,7 +4,7 @@ Condor game is a real-time probabilistic forecasting challenge hosted by CrunchD
 
 The goal is to anticipate how asset prices will evolve by providing not a single forecasted value, but a full probability distribution over the future price change at multiple forecast horizons and steps.
 
-**The current crypto assets to model are Bitcoin (BTC), Ethereum (ETH), Solana (SOL) and Tether Gold (XAU).**
+**The current crypto assets to model are Bitcoin (BTC), Ethereum (ETH), Solana (SOL) and Tether Gold (XAUT).**
 
 ## Install
 
