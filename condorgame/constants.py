@@ -2,6 +2,14 @@
 Constants used across the condor game package.
 """
 
+# Supported assets
+SUPPORTED_ASSETS = [
+    "BTC",   # BTC/USD
+    "ETH",   # ETH/USD
+    "XAUT",  # XAUT/USD
+    "SOL",   # SOL/USD
+]
+
 # ------------------------------------------------------------------
 # Forecast configuration (in seconds)
 # Each profile defines:

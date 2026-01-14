@@ -13,16 +13,25 @@ from condorgame.constants import CRPS_BOUNDS
 
 
 class TrackerEvaluator:
+    """
+    Evaluates a tracker by comparing its predictions to realized asset returns
+    using scoring: CRPS (Continuous Ranked Probability Score).
+
+    This class also handles:
+    - Quarantine: delaying scoring until sufficient future data is available.
+    - Rolling evaluation windows for recent CRPS computation.
+    - Storing timestamped scores for per-asset and global evaluation.
+    """
+
     def __init__(self, tracker: TrackerBase, score_window_size: int = 100):
         """
-        Evaluates a given tracker by comparing its predictions to the actual locations.
-
         Parameters
         ----------
         tracker : TrackerBase
             The tracker instance to evaluate.
         score_window_size : int, optional
-            The number of most recent scores to retain for computing the median latest score.
+            The number of most recent scores to retain for computing a
+            rolling recent CRPS per asset.
         """
 
         super().__init__()
@@ -35,15 +44,23 @@ class TrackerEvaluator:
         self.latest_scores = defaultdict(lambda: deque(maxlen=score_window_size))
 
     def tick(self, data: PriceData):
+        """ Feed new market data to the tracker. 
+        data : PriceData
+            Mapping from asset symbol to a list of (timestamp, price) pairs.
+        """
         self.tracker.tick(data)
-
 
     def predict(self, asset: Asset, horizon: int, steps: list[int]):
         """
-        Request multi-resolution predictions and evaluate them when realized.
+        Request multi-resolution predictions, place them
+        in quarantine and evaluate them when realized.
+
+        Returns: list or None
+            List of quarantined predictions that were scored (or None if none ready yet).
         """
         predictions = self.tracker.predict_all(asset, horizon, steps)
-        # add check of prediction
+
+        # Validate predictions
         for step in steps:
             if step > horizon:
                 continue
@@ -63,7 +80,7 @@ class TrackerEvaluator:
         if not quarantines_predictions:
             return
 
-        # Score
+        # Compute score for quarantined predictions
         score = self._score_quarantines(asset, quarantines_predictions)
         
         # Store timestamped scores
@@ -73,6 +90,22 @@ class TrackerEvaluator:
         return quarantines_predictions
     
     def _score_quarantines(self, asset: Asset, quarantines_predictions: list):
+        """
+        Compute CRPS scores for all quarantined predictions of a given asset.
+
+        Parameters
+        ----------
+        asset : Asset
+        quarantines_predictions : list
+            Each element is a tuple: (quarantine_ts, predictions, steps)
+            In most cases, only a single quarantine is resolved per asset
+            at a given evaluation time.
+
+        Returns
+        -------
+        float
+            Mean normalized CRPS score across all quarantines.
+        """
 
         quarantines_scores = []
 
@@ -141,7 +174,7 @@ class TrackerEvaluator:
         return np.mean(quarantines_scores)
 
     
-    def recent_crps_score_asset(self, asset: Asset):
+    def recent_score_asset(self, asset: Asset):
         """
         Return the mean crps score of the most recent `score_window_size` scores.
         """
@@ -150,7 +183,7 @@ class TrackerEvaluator:
         values = [s for _, s in self.latest_scores[asset]]
         return float(np.mean(values))
     
-    def overall_crps_score_asset(self, asset: Asset):
+    def overall_score_asset(self, asset: Asset):
         """
         Return the mean crps score over all recorded scores.
         """
@@ -159,7 +192,7 @@ class TrackerEvaluator:
         values = [s for _, s in self.scores[asset]]
         return float(np.mean(values))
 
-    def overall_crps_score(self):
+    def overall_score(self):
         """
         Return the mean crps score across all assets together.
         """

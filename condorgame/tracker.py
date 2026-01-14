@@ -7,6 +7,9 @@ class TrackerBase(abc.ABC):
     """
     Base class for all trackers.
 
+    A tracker is a model that processes real-time asset prices and outputs 
+    probabilistic forecasts of future returns.
+
     You must implement `predict()` for a *single*
     (asset, horizon, step) configuration.
 
@@ -14,20 +17,32 @@ class TrackerBase(abc.ABC):
     via `predict_all()` to obtain multi-resolution forecasts.
     """
     def __init__(self):
+        """
+        Initialize the tracker with a `PriceStore`.
+
+        `self.prices` provides:
+        - Storage of recent historical prices per asset (rolling window of 30 days)
+        - Convenient accessors:
+            - get_last_price(asset)
+            - get_prices(asset, days, resolution)
+            - get_closest_price(asset, timestamp)
+        """
         self.prices = PriceStore()
 
     def tick(self, data: PriceData):
         """
-        The first tick is the initial state and send you the last 30 days of data.
-        The resolution of the data is 1 minute.
+        The framework automatically updates the `PriceStore` by calling `tick()`
 
-        data = {
-            "BTC": [(ts1, p1), (ts2, p2)],
-            "SOL": [(ts1, p1)],
-        }
+        data : dict[Asset, list[PriceEntry]]
+            Example:
+            {
+                "BTC": [(ts1, p1), (ts2, p2)],
+                "SOL": [(ts1, p1)],
+            }
 
         The tick() method is called whenever new market data arrives:
         When it's called:
+        - To store historical data
         - Typically every minute or when new data is available
         - Before any prediction request
         - Can be called multiple times before a predict
@@ -35,7 +50,7 @@ class TrackerBase(abc.ABC):
         self.prices.add_bulk(data)
 
     @abc.abstractmethod
-    def predict(self, asset: Asset, horizon: int, step: int):
+    def predict(self, asset: Asset, horizon: int, step: int) -> list[dict]:
         """
         Generate a sequence of return price density predictions for a given asset.
 
@@ -63,26 +78,33 @@ class TrackerBase(abc.ABC):
             ]
 
         :param asset: Asset symbol to predict (e.g. "BTC", "SOL").
-        :param horizon: Total prediction horizon in seconds (e.g. 86400 for 24h ahead).
+        :param horizon: Prediction horizon in seconds (e.g. 86400 for 24h ahead).
         :param step: Interval between each prediction in seconds (e.g. 300 for 5 minutes).
         :return: List of predictive density objects, each representing a probability
                  distribution for the return price at a given time step.
         """
         pass
 
-    def predict_all(self, asset: Asset, horizon: int, steps: list[int]):
+    def predict_all(self, asset: Asset, horizon: int, steps: list[int]) -> dict[int, list[dict]]:
         """
         Generate predictive distributions at multiple time resolutions
         for a fixed prediction horizon.
 
-        Returns:
-            dict[str, list[dict]]:
-                {
-                    300:   [...],
-                    3600:  [...],
-                    21600:  [...],
-                    86400: [...]
-                }
+        :param asset: Asset symbol to predict (e.g. "BTC", "SOL").
+        :param horizon: Prediction horizon in seconds (e.g. 86400 for 24h ahead).
+        :param steps: List of step sizes (in seconds) at which to generate predictions.
+
+        :return predictions: dict[int, list[dict]]
+            Mapping from step size to the list of density predictions.
+
+        Example:
+            >>> model.predict_all(asset="SOL", horizon=86400, steps=[300, 3600, 21600, 86400])
+            {
+                300:   [...],
+                3600:  [...],
+                21600:  [...],
+                86400: [...]
+            }
         """
         predictions = {}
 

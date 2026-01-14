@@ -92,7 +92,7 @@ class GaussianStepTracker(TrackerBase):
 
 
 if __name__ == "__main__":
-    from condorgame.constants import FORECAST_PROFILES
+    from condorgame.constants import FORECAST_PROFILES, SUPPORTED_ASSETS
     from condorgame.debug.plots import plot_quarantine, plot_prices, plot_scores
     from condorgame.examples.utils import load_test_prices_once, load_initial_price_histories_once, count_evaluations
 
@@ -106,6 +106,8 @@ if __name__ == "__main__":
 
     # Assets to evaluate
     assets = ["BTC", "SOL"] # Supported assets: "BTC", "SOL", "ETH", "XAUT"
+    print("Supported assets:", ", ".join(SUPPORTED_ASSETS))
+    print("Selected assets:", ", ".join(assets))
 
     # Select which forecast profile to evaluate
     ACTIVE_HORIZON = "24h"  # options: "24h", "1h"
@@ -180,15 +182,15 @@ if __name__ == "__main__":
                         show_first_plot = False
 
                     pbar.write(
-                        f"[{asset}] avg norm CRPS={tracker_evaluator.overall_crps_score_asset(asset):.4f} | "
-                        f"recent={tracker_evaluator.recent_crps_score_asset(asset):.4f}"
+                        f"[{asset}] avg norm CRPS={tracker_evaluator.overall_score_asset(asset):.4f} | "
+                        f"recent={tracker_evaluator.recent_score_asset(asset):.4f}"
                     )
                 predict_count += 1
         
         # Final summary for this asset
         pbar.write(
-                f"[{asset}] avg norm CRPS={tracker_evaluator.overall_crps_score_asset(asset):.4f} | "
-                f"recent={tracker_evaluator.recent_crps_score_asset(asset):.4f}"
+                f"[{asset}] avg norm CRPS={tracker_evaluator.overall_score_asset(asset):.4f} | "
+                f"recent={tracker_evaluator.recent_score_asset(asset):.4f}"
             )
         
         pbar.close()
@@ -197,7 +199,7 @@ if __name__ == "__main__":
     # Global summary across all assets
     tracker_name = tracker_evaluator.tracker.__class__.__name__
     print(f"\nTracker {tracker_name}:"
-        f"\nFinal average normalized crps score: {tracker_evaluator.overall_crps_score():.4f}")
+        f"\nFinal average normalized crps score: {tracker_evaluator.overall_score():.4f}")
 
     # Plot scoring timeline
     timestamped_scores = tracker_evaluator.scores

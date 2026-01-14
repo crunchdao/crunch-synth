@@ -234,7 +234,7 @@ tracker_evaluator.tick({"SOL": [(ts, price)]})
 predictions = tracker_evaluator.predict("SOL", horizon=3600*24,
                                         steps=[300, 3600, 3600*6, 3600*24])
 
-print(f"My overall normalized CRPS score: {tracker_evaluator.overall_crps_score("SOL"):.4f}")
+print(f"My overall normalized CRPS score: {tracker_evaluator.overall_score("SOL"):.4f}")
 ```
 
 

@@ -20,9 +20,11 @@ class PriceStore:
     def __init__(self, window_days: int = 30):
         # per asset: SortedDict[int, float]
         self.data: dict[Asset, SortedDict[int, float]] = defaultdict(SortedDict)
+        # Maximum number of days of historical data to keep per asset.
         self.window_days = window_days
 
     def add_price(self, symbol: Asset, price: float, timestamp: int):
+        """Add a single (timestamp, price) entry for an asset."""
         self.add_prices(symbol, [(timestamp, price)])
 
     def add_prices(self, symbol: Asset, entries: list[PriceEntry]):
@@ -63,6 +65,11 @@ class PriceStore:
     def get_prices(self, asset: str, days: int | None = None, resolution: int = 60) -> list[PriceEntry]:
         """
         Quickly retrieve (timestamp, price) pairs spaced by `resolution` seconds.
+
+        days : int | None
+            Limit to the last `days` days of data. None returns all available data.
+        resolution : int
+            Minimum time difference between consecutive returned points in seconds.
         """
         series = self.data.get(asset)
         if not series:
