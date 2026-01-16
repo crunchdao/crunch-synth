@@ -82,3 +82,8 @@ CRPS_BOUNDS = {
     "num_points": 256
 }
 # ------------------------------------------------------------------
+
+
+# Maximum number of mixture components allowed per predictive distribution
+# The limit may be increased in the future.
+MAX_DISTRIBUTION_COMPONENTS = 3
