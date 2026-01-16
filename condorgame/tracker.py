@@ -118,15 +118,15 @@ class TrackerBase(abc.ABC):
                 all_predictions[step] = []
                 continue
 
-            predictions_checked = []
+            predictions_ready = []
             for dist in predictions:
                 # Validate mixture distribution: enforce MAX_DISTRIBUTION_COMPONENTS recursively
                 validate_distribution(dist)
                 # Round all numeric parameters to a fixed number of significant digits
                 dist = round_distribution_digits(dist, digits=6)
-                predictions_checked.append(dist)
+                predictions_ready.append(dist)
 
-            all_predictions[step] = predictions_checked
+            all_predictions[step] = predictions_ready
 
         return all_predictions
 
