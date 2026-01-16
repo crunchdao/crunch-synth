@@ -1,6 +1,7 @@
 import abc
 
 from condorgame.prices import PriceStore, Asset, PriceEntry, PriceData
+from condorgame.utils.distributions import validate_distribution
 
 
 class TrackerBase(abc.ABC):
@@ -112,6 +113,13 @@ class TrackerBase(abc.ABC):
             if step > horizon:
                 continue
 
-            predictions[step] = self.predict(asset=asset, horizon=horizon, step=step)
+            preds = self.predict(asset=asset, horizon=horizon, step=step)
+
+            for d in preds:
+                validate_distribution(d)
+
+            predictions[step] = preds
 
         return predictions
+
+

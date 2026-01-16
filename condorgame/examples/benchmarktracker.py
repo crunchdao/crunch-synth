@@ -93,8 +93,9 @@ class GaussianStepTracker(TrackerBase):
 
 if __name__ == "__main__":
     from condorgame.constants import FORECAST_PROFILES, SUPPORTED_ASSETS
-    from condorgame.debug.plots import plot_quarantine, plot_prices, plot_scores
-    from condorgame.examples.utils import load_test_prices_once, load_initial_price_histories_once, count_evaluations
+    from condorgame.utils.data import load_test_prices_once, load_initial_price_histories_once
+    from condorgame.utils.evaluation_utils import count_evaluations
+    from condorgame.utils.plots import plot_quarantine, plot_prices, plot_scores
 
     # Setup tracker + evaluator
     tracker = GaussianStepTracker()
