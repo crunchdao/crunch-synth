@@ -1,6 +1,6 @@
-# Condor Game
+# Crunch-Synth Game
 
-Condor game is a real-time probabilistic forecasting challenge hosted by CrunchDAO at [crunchdao.com](https://crunchdao.com)
+Crunch-Synth is a real-time probabilistic forecasting challenge hosted by CrunchDAO at [crunchdao.com](https://crunchdao.com)
 
 The goal is to anticipate how asset prices will evolve by providing not a single forecasted value, but a full probability distribution over the future price change at multiple forecast horizons and steps.
 
@@ -18,7 +18,7 @@ The goal is to anticipate how asset prices will evolve by providing not a single
 ## Install
 
 ```bash
-pip install condorgame
+pip install crunch-synth
 ```
 
 ## What You Must Predict
@@ -34,7 +34,7 @@ For each defined step **$k$** (e.g., 5 minutes, 1 hour, …), your tracker must 
 
 ## Visualize the challenge
 
-The Condor game is evaluated on **incremental return predictions**, not raw prices.  
+The Crunch-Synth game is evaluated on **incremental return predictions**, not raw prices.  
 Incremental returns capture the *relative* change in price and produce a stationary series that is easier to model and compare across assets.
 
 Below is an example of a **density forecast over incremental returns for the next 24h at 5-minute intervals**:
@@ -120,7 +120,7 @@ As a participant, you only need to implement **one method**: `predict()`.
 
     The framework will automatically call your `predict()` method multiple times via `predict_all(asset, horizon, steps)` to construct forecasts at different temporal resolutions.
 
-You can refer to the [Tracker examples](condor_forecast/examples) for guidance.
+You can refer to the [Tracker examples](crunch_synth/examples) for guidance.
 
 ```python
 class GaussianStepTracker(TrackerBase):
@@ -235,8 +235,8 @@ TrackerEvaluator allows you to track your model's performance over time locally 
 **A lower CRPS score reflects more accurate predictions.**
 
 ```python
-from condorgame.tracker_evaluator import TrackerEvaluator
-from condorgame.examples.benchmarktracker import GaussianStepTracker  # Your custom tracker
+from crunch_synth.tracker_evaluator import TrackerEvaluator
+from crunch_synth.examples.benchmarktracker import GaussianStepTracker  # Your custom tracker
 
 # Initialize the tracker evaluator with your custom GaussianStepTracker
 tracker_evaluator = TrackerEvaluator(GaussianStepTracker())
@@ -252,15 +252,15 @@ print(f"My overall normalized CRPS score: {tracker_evaluator.overall_score("SOL"
 
 
 ## Tracker examples 
-See [Tracker examples](condorgame/examples). There are:
+See [Tracker examples](crunch_synth/examples). There are:
 
 - Quickstarter Notebooks
 - Self-contained examples
 
 
-## General Condor Game Advice 
+## General Crunch-Synth Game Advice 
 
-The Condor game challenges you to predict the asset location using probabilistic forecasting.
+The Crunch-Synth game challenges you to predict the asset location using probabilistic forecasting.
 
 ### Probabilistic Forecasting
 

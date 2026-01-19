@@ -1,6 +1,6 @@
 import unittest
 
-from condorgame.quarantine import Quarantine
+from crunch_synth.quarantine import Quarantine
 
 
 

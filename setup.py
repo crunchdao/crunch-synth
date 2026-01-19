@@ -3,7 +3,7 @@
 import os
 from setuptools import setup, find_packages
 
-package = "condorgame"
+package = "crunch_synth"
 
 about = {}
 here = os.path.abspath(os.path.dirname(__file__))
@@ -44,7 +44,6 @@ setup(
     keywords=[
         'crunchdao',
         'crunch',
-        'condor',
-        'condor-game',
+        'crunch-synth',
     ],
 )

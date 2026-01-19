@@ -2,8 +2,8 @@
 from datetime import datetime, timezone, timedelta
 import numpy as np
 
-from condorgame.tracker import PriceData
-from condorgame.examples.benchmarktracker import GaussianStepTracker  # replace with actual import path
+from crunch_synth.tracker import PriceData
+from crunch_synth.examples.exampletracker import GaussianStepTracker  # replace with actual import path
 
 
 # -------------------------------
