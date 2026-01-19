@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from bisect import bisect_left
 
-from condorgame.prices import PriceStore, Asset, PriceEntry
+from crunch_synth.prices import PriceStore, Asset, PriceEntry
 
 
 # ---------------------------

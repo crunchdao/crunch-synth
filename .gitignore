@@ -258,4 +258,4 @@ cython_debug/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,eclipse,visualstudiocode,dotenv
 
-falcon2/examples/results/*
+crunch_synth/examples/results/*

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from condorgame.price_provider import shared_pricedb
+from crunch_synth.price_provider import shared_pricedb
 
 # ---------------------------
 # Tests
