@@ -11,7 +11,7 @@ class PriceUnavailableError(ValueError):
 
 class PriceDbClient:
 
-    _HISTORY_URL = "https://api--pricedb--tournament.crunchdao.cloud/v1/prices"
+    _HISTORY_URL = "https://pricedb.crunchdao.com/v1/prices"
 
     def get_price_history(
         self,
