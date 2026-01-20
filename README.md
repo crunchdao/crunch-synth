@@ -1,6 +1,6 @@
-# Crunch-Synth Game
+# Synth Game
 
-Crunch-Synth is a real-time probabilistic forecasting challenge hosted by CrunchDAO at [crunchdao.com](https://crunchdao.com)
+Synth Game is a real-time probabilistic forecasting challenge hosted by CrunchDAO at [crunchdao.com](https://crunchdao.com)
 
 The goal is to anticipate how asset prices will evolve by providing not a single forecasted value, but a full probability distribution over the future price change at multiple forecast horizons and steps.
 
@@ -34,7 +34,7 @@ For each defined step **$k$** (e.g., 5 minutes, 1 hour, …), your tracker must 
 
 ## Visualize the challenge
 
-The Crunch-Synth game is evaluated on **incremental return predictions**, not raw prices.  
+The Synth game is evaluated on **incremental return predictions**, not raw prices.  
 Incremental returns capture the *relative* change in price and produce a stationary series that is easier to model and compare across assets.
 
 Below is an example of a **density forecast over incremental returns for the next 24h at 5-minute intervals**:
@@ -258,9 +258,9 @@ See [Tracker examples](crunch_synth/examples). There are:
 - Self-contained examples
 
 
-## General Crunch-Synth Game Advice 
+## General Synth Game Advice 
 
-The Crunch-Synth game challenges you to predict the asset location using probabilistic forecasting.
+The Synth game challenges you to predict the asset location using probabilistic forecasting.
 
 ### Probabilistic Forecasting
 
