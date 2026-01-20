@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from crunch_synth.price_provider import shared_pricedb
 from crunch_synth.tracker import TrackerBase
