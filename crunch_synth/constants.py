@@ -82,13 +82,13 @@ CRPS_BOUNDS = {
         "BTC": 1500,
         "SOL": 4,
         "ETH": 80,
-        "XAUT": 28,
+        "XAUT": 33,
 
-        "SPYX": 2.4,
+        "SPYX": 3.2,
         "NVDAX": 2.3,
-        "TSLAX": 5.4,
-        "AAPLX": 1.7,
-        "GOOGLX": 2.3,
+        "TSLAX": 5.9,
+        "AAPLX": 2.1,
+        "GOOGLX": 3.4,
     },
     "num_points": 256
 }
