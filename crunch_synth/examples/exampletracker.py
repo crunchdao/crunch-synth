@@ -2,9 +2,7 @@ from datetime import datetime, timezone, timedelta
 import numpy as np
 from tqdm.auto import tqdm
 
-from crunch_synth.price_provider import shared_pricedb
-from crunch_synth.tracker import TrackerBase
-from crunch_synth.tracker_evaluator import TrackerEvaluator
+from crunch_synth import TrackerBase, TrackerEvaluator
 
 
 class GaussianStepTracker(TrackerBase):
@@ -94,10 +92,16 @@ class GaussianStepTracker(TrackerBase):
 
 
 if __name__ == "__main__":
-    from crunch_synth.constants import FORECAST_PROFILES, SUPPORTED_ASSETS
-    from crunch_synth.utils.data import load_test_prices_once, load_initial_price_histories_once
-    from crunch_synth.utils.evaluation_utils import count_evaluations
-    from crunch_synth.utils.plots import plot_quarantine, plot_prices, plot_scores
+
+    from crunch_synth import (
+        FORECAST_PROFILES,
+        SUPPORTED_ASSETS,
+        load_test_prices_once,
+        load_initial_price_histories_once,
+        count_evaluations,
+        plot_quarantine,
+        plot_scores,
+    )
 
     # Setup tracker + evaluator
     tracker = GaussianStepTracker()
@@ -133,14 +137,14 @@ if __name__ == "__main__":
 
     ## Load the last N days of price data (test period)
     test_asset_prices = load_test_prices_once(
-        assets, shared_pricedb, evaluation_end, days=days
+        assets, evaluation_end, days=days
     )
     # test_asset_prices : dict : {asset -> [(timestamp, price), ...]} used for evaluation.
 
     ## Provide the tracker with initial historical data (for the first tick):
     ## load prices from the last H days up to N days ago
     initial_histories = load_initial_price_histories_once(
-        assets, shared_pricedb, evaluation_end, days_history=days_history, days_offset=days
+        assets, evaluation_end, days_history=days_history, days_offset=days
     )
     # initial_histories : dict : {asset -> [(timestamp, price), ...]} used as warm-up history.
 
