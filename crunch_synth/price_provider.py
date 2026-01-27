@@ -43,4 +43,4 @@ class PriceDbClient:
         return list(zip(root["timestamp"], root["close"]))
 
 
-shared_pricedb = PriceDbClient()
+pricedb = PriceDbClient()

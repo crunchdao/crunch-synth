@@ -96,6 +96,7 @@ if __name__ == "__main__":
     from crunch_synth import (
         FORECAST_PROFILES,
         SUPPORTED_ASSETS,
+        pricedb,
         load_test_prices_once,
         load_initial_price_histories_once,
         count_evaluations,

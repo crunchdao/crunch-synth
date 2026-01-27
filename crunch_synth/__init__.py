@@ -1,6 +1,7 @@
 from .tracker import TrackerBase
 from .tracker_evaluator import TrackerEvaluator
 from .constants import FORECAST_PROFILES, SUPPORTED_ASSETS
+from .price_provider import pricedb
 
 from .utils.data import (
     load_test_prices_once,
