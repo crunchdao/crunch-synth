@@ -37,15 +37,16 @@ class GaussianStepTracker(TrackerBase):
         """
 
         # Retrieve recent historical prices (up to 30 days) sampled at 5-minute resolution
-        resolution=300 # Use a multiple of 60s because the original data has 60s resolution
-        pairs = self.prices.get_prices(asset, days=3, resolution=resolution)
-        if not pairs:
+        resolution = 5 * 60 # Use a multiple of 60s because the original data has 60s resolution
+        price_points = self.prices.get_prices(asset, days=3, resolution=resolution)
+        if not price_points:
             return []
 
-        _, past_prices = zip(*pairs)
+        past_times, past_prices = zip(*price_points)
 
-        if len(past_prices) < 3:
-            return []
+        # Latest observed price (Use it to handle time-dependent logic (e.g. market hours, weekends))
+        current_price = past_prices[-1]
+        current_time = datetime.fromtimestamp(past_times[-1], tz=timezone.utc)
 
         # Compute historical incremental returns (price differences)
         returns = np.diff(past_prices)
