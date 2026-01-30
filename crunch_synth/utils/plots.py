@@ -235,18 +235,20 @@ def plot_scores(data):
     df["time"] = pd.to_datetime(df["ts"], unit="s", utc=True)
 
     # average score accross asset
-    df_avg = df.groupby("time", as_index=False)["score"].mean()
+    # df_avg = df.groupby("time", as_index=False)["score"].mean()
 
-    start_scores = df_avg['time'].iloc[0]
-    end_scores = df_avg['time'].iloc[-1]
+    start_scores = df['time'].iloc[0]
+    end_scores = df['time'].iloc[-1]
     assets = df["asset"].unique().tolist()
     title = f"{assets} crps scores from {start_scores} to {end_scores}"
     
     # Create a line graph using Plotly
     fig = px.line(
-        df_avg,
+        df,
         x="time",
         y="score",
+        color="asset",
+        markers=True,
         title=title,
     )
 
