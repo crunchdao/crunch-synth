@@ -1,20 +1,88 @@
 import abc
+import datetime
+import logging
+import threading
+import time
 
 from condorgame.prices import PriceStore, Asset, PriceEntry, PriceData
+
+logger = logging.getLogger(__name__)
+
+
+class SubTracker(abc.ABC):
+    """
+    Specialized tracker for a specific (horizon, asset) combination.
+
+    """
+
+    def __init__(self):
+        self.prices = PriceStore()
+
+    def tick(self, data: PriceData):
+        """Override to filter which assets are ingested. Default: ingest all."""
+        self.prices.add_bulk(data)
+
+    @abc.abstractmethod
+    def predict(self, asset: Asset, horizon: int, step: int) -> list:
+        """Return a list of density predictions."""
+        pass
 
 
 class TrackerBase(abc.ABC):
     """
     Base class for all trackers.
 
-    You must implement `predict()` for a *single*
-    (asset, horizon, step) configuration.
+    You can either:
+    - Override `predict()` directly for a single strategy, or
+    - Use `track(horizon, asset, sub_tracker)` to route predictions
+      to specialized SubTracker instances.
 
     The framework will automatically call `predict()` multiple times
     via `predict_all()` to obtain multi-resolution forecasts.
     """
+
     def __init__(self):
         self.prices = PriceStore()
+        self._routes: list[tuple[int, str, SubTracker]] = []
+        self._sub_trackers: set[SubTracker] = set()
+        self._cron_threads: list[threading.Thread] = []
+
+    def track(self, horizon: int, asset: str, tracker: SubTracker):
+        """
+        Register a SubTracker for a given (horizon, asset) pair.
+
+        :param horizon: Prediction horizon in seconds (e.g. 86400 for 24h).
+        :param asset: Asset symbol (e.g. "BTC") or "*" for all assets.
+        :param tracker: A SubTracker instance to handle predictions.
+        """
+        self._routes.append((horizon, asset, tracker))
+        self._sub_trackers.add(tracker)
+
+    def schedule(self, name: str, func, interval: datetime.timedelta):
+        """
+        Schedule a recurring background task.
+
+        :param name: Human-readable name for logging.
+        :param func: Callable to execute periodically.
+        :param interval: Time between executions.
+        """
+        interval_sec = interval.total_seconds()
+
+        def _loop():
+            while True:
+                time.sleep(interval_sec)
+                try:
+                    logger.info("[cron] '%s' running", name)
+                    func()
+                    next_run = datetime.datetime.now() + interval
+                    logger.info("[cron] '%s' done — next run at %s", name, next_run.strftime("%Y-%m-%d %H:%M:%S"))
+                except Exception:
+                    next_run = datetime.datetime.now() + interval
+                    logger.exception("[cron] '%s' failed — next run at %s", name, next_run.strftime("%Y-%m-%d %H:%M:%S"))
+
+        t = threading.Thread(target=_loop, name=f"cron-{name}", daemon=True)
+        t.start()
+        self._cron_threads.append(t)
 
     def tick(self, data: PriceData):
         """
@@ -33,42 +101,42 @@ class TrackerBase(abc.ABC):
         - Can be called multiple times before a predict
         """
         self.prices.add_bulk(data)
+        for tracker in self._sub_trackers:
+            tracker.tick(data)
 
-    @abc.abstractmethod
     def predict(self, asset: Asset, horizon: int, step: int):
         """
         Generate a sequence of return price density predictions for a given asset.
 
-        This method produces a list of predictive distributions (densities)
-        for the future return price of a given asset (e.g., BTC, SOL, etc.)
-        starting from the current timestamp.
-
-        Each distribution corresponds to a prediction at a specific time offset,
-        spaced by `step` seconds, up to the total prediction horizon `horizon`.
-
-        The returned list is directly compatible with the `density_pdf` library.
-
-        Example:
-            >>> model.predict(asset="SOL", horizon=86400, step=300)
-            [
-                {
-                    "step": (k+1)*step,
-                    "prediction": {
-                        "type": "builtin",
-                        "name": "norm",
-                        "params": {"loc": -0.01, "scale": 0.4}
-                    }
-                }
-                for k in range(0, horizon // step)
-            ]
+        If a SubTracker is registered via `track()` for this (horizon, asset),
+        the call is routed to it. Otherwise, subclasses must override this method.
 
         :param asset: Asset symbol to predict (e.g. "BTC", "SOL").
         :param horizon: Total prediction horizon in seconds (e.g. 86400 for 24h ahead).
         :param step: Interval between each prediction in seconds (e.g. 300 for 5 minutes).
-        :return: List of predictive density objects, each representing a probability
-                 distribution for the return price at a given time step.
+        :return: List of predictive density objects.
         """
-        pass
+        tracker = self._resolve_tracker(horizon, asset)
+        if tracker is not None:
+            return tracker.predict(asset, horizon, step)
+
+        raise NotImplementedError(
+            f"{self.__class__.__name__}.predict() not implemented "
+            f"and no SubTracker registered for horizon={horizon}, asset='{asset}'. "
+            f"Either override predict() or use self.track() to register a SubTracker."
+        )
+
+    def _resolve_tracker(self, horizon: int, asset: str) -> SubTracker | None:
+        """Find the best matching SubTracker: exact asset match > wildcard '*'."""
+        wildcard_match = None
+        for h, pattern, tracker in self._routes:
+            if h != horizon:
+                continue
+            if pattern == asset:
+                return tracker
+            if pattern == '*' and wildcard_match is None:
+                wildcard_match = tracker
+        return wildcard_match
 
     def predict_all(self, asset: Asset, horizon: int, steps: list[int]):
         """
