@@ -58,19 +58,21 @@ class TrackerBase(abc.ABC):
         self._routes.append((horizon, asset, tracker))
         self._sub_trackers.add(tracker)
 
-    def schedule(self, name: str, func, interval: datetime.timedelta):
+    def schedule(self, name: str, func, interval: datetime.timedelta, immediate: bool = False):
         """
         Schedule a recurring background task.
 
         :param name: Human-readable name for logging.
         :param func: Callable to execute periodically.
         :param interval: Time between executions.
+        :param immediate: If True, run func() once before the first interval.
         """
         interval_sec = interval.total_seconds()
 
         def _loop():
-            while True:
+            if not immediate:
                 time.sleep(interval_sec)
+            while True:
                 try:
                     logger.info("[cron] '%s' running", name)
                     func()
