@@ -82,6 +82,8 @@ class TrackerBase(abc.ABC):
                     next_run = datetime.datetime.now() + interval
                     logger.exception("[cron] '%s' failed — next run at %s", name, next_run.strftime("%Y-%m-%d %H:%M:%S"))
 
+                time.sleep(interval_sec)
+
         t = threading.Thread(target=_loop, name=f"cron-{name}", daemon=True)
         t.start()
         self._cron_threads.append(t)
