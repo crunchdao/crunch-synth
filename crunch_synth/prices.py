@@ -23,6 +23,8 @@ class PriceStore:
         # Maximum number of days of historical data to keep per asset.
         self.window_days = window_days
 
+        self.last_timestamp: int | None = None
+
     def add_price(self, symbol: Asset, price: float, timestamp: int):
         """Add a single (timestamp, price) entry for an asset."""
         self.add_prices(symbol, [(timestamp, price)])
@@ -38,6 +40,11 @@ class PriceStore:
         # (If entries may contain duplicates, last one wins naturally.)
         for t, p in entries:
             series[t] = p
+
+        # Update global last_timestamp
+        newest = series.peekitem(-1)[0]
+        if self.last_timestamp is None or newest > self.last_timestamp:
+            self.last_timestamp = newest
 
         # Keep only last window_days relative to newest timestamp
         if series:
