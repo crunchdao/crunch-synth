@@ -41,8 +41,10 @@ class TrackerBase(abc.ABC):
     via `predict_all()` to obtain multi-resolution forecasts.
     """
 
-    def __init__(self):
+    def __init__(self, data_clock: int = int(time.time())):
         self.prices = PriceStore()
+        self.data_clock = data_clock  # current data timestamp by default, override for backtesting
+        self._tick_event = threading.Event()
         self._routes: list[tuple[int, str, SubTracker]] = []
         self._sub_trackers: set[SubTracker] = set()
         self._cron_threads: list[threading.Thread] = []
@@ -60,31 +62,42 @@ class TrackerBase(abc.ABC):
 
     def schedule(self, name: str, func, interval: datetime.timedelta, immediate: bool = False):
         """
-        Schedule a recurring background task.
+        Schedule a recurring background task driven by data time (self.data_clock).
+
+        The thread polls self.data_clock every second and triggers func() when
+        enough data-time has elapsed. Works correctly in both live and
+        backtesting modes.
 
         :param name: Human-readable name for logging.
         :param func: Callable to execute periodically.
-        :param interval: Time between executions.
-        :param immediate: If True, run func() once before the first interval.
+        :param interval: Time between executions (in data-time).
+        :param immediate: If True, run func() immediately on first check.
         """
-        interval_sec = interval.total_seconds()
+        interval_sec = int(interval.total_seconds())
+        last_run = 0 if immediate else self.data_clock
 
         def _loop():
-            if not immediate:
-                time.sleep(interval_sec)
+            nonlocal last_run
             while True:
-                try:
-                    logger.info("[cron] '%s' running", name)
-                    func()
-                    next_run = datetime.datetime.now() + interval
-                    logger.info("[cron] '%s' done — next run at %s", name, next_run.strftime("%Y-%m-%d %H:%M:%S"))
-                except Exception:
-                    next_run = datetime.datetime.now() + interval
-                    logger.exception("[cron] '%s' failed — next run at %s", name, next_run.strftime("%Y-%m-%d %H:%M:%S"))
+                self._tick_event.wait()
+                self._tick_event.clear()
+                now = self.data_clock
+                if now - last_run >= interval_sec:
+                    start = time.monotonic()
+                    try:
+                        logger.info("[schedule] '%s' running (data-time %s)", name,
+                                    datetime.datetime.fromtimestamp(now, tz=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
+                        func()
+                        elapsed_s = time.monotonic() - start
+                        last_run = now
+                        next_at = now + interval_sec
+                        logger.info("[schedule] '%s' done in %.1fs — next at data-time %s", name, elapsed_s,
+                                    datetime.datetime.fromtimestamp(next_at, tz=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
+                    except Exception:
+                        last_run = now
+                        logger.exception("[schedule] '%s' failed", name)
 
-                time.sleep(interval_sec)
-
-        t = threading.Thread(target=_loop, name=f"cron-{name}", daemon=True)
+        t = threading.Thread(target=_loop, name=f"schedule-{name}", daemon=True)
         t.start()
         self._cron_threads.append(t)
 
@@ -107,6 +120,16 @@ class TrackerBase(abc.ABC):
         self.prices.add_bulk(data)
         for tracker in self._sub_trackers:
             tracker.tick(data)
+
+        self._sync_clock()
+
+    def _sync_clock(self, timestamp: int | None = None):
+        """Update data_clock and wake up schedule threads. Call this after ingesting data."""
+        if timestamp is not None:
+            self.data_clock = timestamp
+        elif self.prices.last_timestamp is not None:
+            self.data_clock = self.prices.last_timestamp
+        self._tick_event.set()
 
     def predict(self, asset: Asset, horizon: int, step: int):
         """
