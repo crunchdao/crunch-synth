@@ -38,8 +38,6 @@ from crunch_synth import TrackerBase, SubTracker, FORECAST_PROFILES, SUPPORTED_A
 
 logger = logging.getLogger(__name__)
 
-RESOURCES_DIR = "/workspace/submission/code/resources"
-
 
 class MySubTracker(SubTracker):
 
