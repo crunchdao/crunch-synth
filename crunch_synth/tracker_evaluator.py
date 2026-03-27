@@ -58,23 +58,35 @@ class TrackerEvaluator:
         Returns: list or None
             List of quarantined predictions that were scored (or None if none ready yet).
         """
+        # Step 1: Generate new predictions and store them in quarantine
+        # (they will be evaluated later once enough future data is available)
+        self.enqueue_predictions(asset, horizon, steps)
+        
+        # Step 2: Check if any previously queued predictions have now
+        # reached their resolvable time and can be scored
+        quarantines_predictions = self.evaluate_quarantine(asset)
+
+        return quarantines_predictions
+    
+    def enqueue_predictions(self, asset: Asset, horizon: int, steps: list[int]):
+        """ Generate predictions and place them in quarantine for future evaluation. """
         predictions = self.tracker.predict_all(asset, horizon, steps)
 
         # Validate predictions
-        for step in steps:
-            if step > horizon:
-                continue
-            expected_len = horizon // step
-            if step not in predictions:
-                raise ValueError(f"Missing predictions for step {step}")
-            if len(predictions[step]) != expected_len:
-                raise ValueError(
-                    f"Prediction length mismatch for step {step}: "
-                    f"{len(predictions[step])} != {expected_len}"
-                )
+        self._validate_predictions(predictions, horizon, steps)
 
         ts, _ = self.tracker.prices.get_last_price(asset)
         self.quarantine_group.add(asset, ts, predictions, horizon, steps)
+    
+    def evaluate_quarantine(self, asset: Asset, ts: int = None):
+        """
+        Score all quarantined predictions that are ready at a given timestamp.
+
+        Returns: list or None
+            List of quarantined predictions that were scored (or None if none ready yet).
+        """
+        if ts is None:
+            ts, _ = self.tracker.prices.get_last_price(asset)
         quarantines_predictions = self.quarantine_group.pop(asset, ts)
 
         if not quarantines_predictions:
@@ -173,6 +185,20 @@ class TrackerEvaluator:
 
         return np.mean(quarantines_scores)
 
+    def _validate_predictions(self, predictions, horizon, steps):
+        """ Validate the structure and consistency of tracker predictions. """
+        for step in steps:
+            if step > horizon:
+                continue
+            expected_len = horizon // step
+            preds = predictions.get(step)
+            if preds is None:
+                raise ValueError(f"Missing predictions for step {step}")
+            if len(preds) != expected_len:
+                raise ValueError(
+                    f"Prediction length mismatch for step {step}: "
+                    f"{len(preds)} != {expected_len}"
+                )
     
     def recent_score_asset(self, asset: Asset):
         """

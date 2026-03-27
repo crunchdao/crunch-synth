@@ -72,11 +72,16 @@ def load_all_results(current_results_directory, horizon=None):
     return df_all
 
 
-def plot_tracker_comparison(df_all, asset=None):
+def plot_tracker_comparison(df_all, asset=None, top_n=None):
     """
     df_all must contain: columns ['time', 'asset', 'tracker', 'score']
     """
     df_plot = df_all.copy()
+
+    if "mytracker" in df_plot:
+        mytrackers = df_plot[df_plot["mytracker"]]['tracker'].unique()
+    else:
+        mytrackers = df_plot['tracker'].unique()
 
     if asset is None:
         asset = df_plot["asset"].unique().tolist()
@@ -91,6 +96,14 @@ def plot_tracker_comparison(df_all, asset=None):
     # ---- Compute stats per tracker ----
     tracker_means = df_plot.groupby("tracker")["score"].mean()
 
+    # ---- Compute ranking ----
+    tracker_ranks = tracker_means.rank(method="min", ascending=True).astype(int)
+
+    # ---- Keep only top N trackers by mean score ----
+    if top_n is not None:
+        top_trackers = tracker_means.nsmallest(top_n).index  # lower score = better
+        df_plot = df_plot[df_plot["tracker"].isin(top_trackers) | df_plot["tracker"].isin(mytrackers)]
+
     # Count best-times: each timestamp → who had lowest score
     best_counts = (
         df_plot.loc[df_plot.groupby("time")["score"].idxmin()]
@@ -103,10 +116,16 @@ def plot_tracker_comparison(df_all, asset=None):
     for tracker in df_plot["tracker"].unique():
         mean_val = tracker_means.get(tracker, float("nan"))
         best_val = best_counts.get(tracker, 0)
+        rank_val = tracker_ranks.get(tracker, None)
 
-        legend_names[tracker] = (
-            f"{tracker} (mean={mean_val:.3f} | best {best_val} times)"
-        )
+        if tracker not in mytrackers and tracker != "benchmark": 
+            legend_names[tracker] = (
+                f"#{rank_val} tracker {tracker} (mean={mean_val:.3f} | best {best_val} times)"
+            )
+        else:
+            legend_names[tracker] = (
+                f"#{rank_val} {tracker} (mean={mean_val:.3f} | best {best_val} times)"
+            )
 
     # ---- Replace tracker column with custom label ----
     df_plot["tracker"] = df_plot["tracker"].map(legend_names)
@@ -122,17 +141,47 @@ def plot_tracker_comparison(df_all, asset=None):
     fig.update_traces(mode="lines+markers")
     fig.update_layout(hovermode="x unified")
 
-    # fig.update_layout(
-    #     legend=dict(
-    #         orientation="v",
-    #         yanchor="bottom",
-    #         y=-0.6,
-    #         xanchor="left",
-    #         x=0.0,
-    #         bgcolor="rgba(0,0,0,0)",
-    #     ),
-    #     margin=dict(t=150)
-    # )
-
 
     fig.show()
+
+
+def merge_with_tracker_history(df_current_results, df_trackers_history):
+    """
+    Merge current tracker results with historical tracker results for comparison.
+
+    Parameters
+    ----------
+    df_current_results : pd.DataFrame
+        DataFrame containing results of the current tracker.
+        Must include a 'time' column.
+    df_trackers_history : pd.DataFrame or None
+        Historical tracker results
+    """
+
+    # If no historical data is provided, return current results unchanged
+    if df_trackers_history is None or len(df_trackers_history) == 0:
+        return df_current_results
+
+    # Tag current tracker results
+    df_current = df_current_results.copy()
+    df_current["mytracker"] = True
+
+    # Filter and prepare historical results
+    # Keep only rows where resolvable_at matches evaluation timestamps
+    valid_times = df_current["time"].unique()
+    df_history_filtered = df_trackers_history[df_trackers_history["resolvable_at"].isin(valid_times)].copy()
+
+    # Tag as historical trackers
+    df_history_filtered["mytracker"] = False
+
+    # Align column name to match current results
+    df_history_filtered = df_history_filtered.rename(columns={"resolvable_at": "time"})
+
+    # Merge datasets
+    df_merged = pd.concat([df_current, df_history_filtered], axis=0, ignore_index=True)
+
+    # Drop columns not needed after merge
+    columns_to_drop = ["ts", "performed_at"]
+    df_merged.drop(columns=[col for col in columns_to_drop if col in df_merged.columns], inplace=True)
+
+    return df_merged
