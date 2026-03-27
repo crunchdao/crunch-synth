@@ -25,6 +25,7 @@ def build_events(history_test_prices, df_trackers_history, asset, horizon, inter
     1. Replay mode (historical):
        If `df_trackers_history` is provided, reuse the exact event timestamps
        from past tracker runs to ensure fair comparison.
+       -> Events are filtered to match the test time window.
     2. Simulation mode (dynamic):
        If no history is available, generate events at a fixed interval.
 
@@ -49,8 +50,12 @@ def build_events(history_test_prices, df_trackers_history, asset, horizon, inter
         Array of timestamps when predictions can be evaluated.
     """
 
+    # Extract first and last timestamps from test data
+    first_timestamp = history_test_prices[0][0]
+    last_timestamp = history_test_prices[-1][0]
+
     # 1. Replay historical event timeline (if available)
-    if df_trackers_history is not None and len(df_trackers_history) > 0:
+    if df_trackers_history is not None and len(df_trackers_history[df_trackers_history['asset'] == asset]) > 0:
 
         # Filter events for the given asset
         df_asset_events = (
@@ -66,12 +71,26 @@ def build_events(history_test_prices, df_trackers_history, asset, horizon, inter
         performed = df_asset_events['performed_at'].apply(lambda dt: int(dt.timestamp()))
         resolvable = df_asset_events['resolvable_at'].apply(lambda dt: int(dt.timestamp()))
 
+        # Filter to match test window
+        # Keep only events fully contained within the test period
+        mask = (
+            (performed >= first_timestamp) &
+            (performed <= last_timestamp + 1 - horizon) # Stop early enough so that a full horizon can still be evaluated
+        )
+
+        performed = performed[mask]
+        resolvable = resolvable[mask]
+
+        if len(performed) == 0:
+            print(
+                f"[WARNING] No overlapping events for asset '{asset}'. "
+                f"Tracker history does not intersect with test time window.\n"
+                f"Test window: [{first_timestamp}, {last_timestamp}] | "
+                f"Horizon: {horizon}"
+            )
+
     # 2. Dynamically generate event timeline
     else:
-        # Extract first and last timestamps from test data
-        first_timestamp = history_test_prices[0][0]
-        last_timestamp = history_test_prices[-1][0]
-
         # Generate prediction timestamps:
         # Start at first_timestamp and step forward every `interval`
         # Stop early enough so that a full horizon can still be evaluated
