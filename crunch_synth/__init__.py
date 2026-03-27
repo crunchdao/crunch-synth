@@ -9,7 +9,11 @@ from .utils.data import (
     load_initial_price_histories_once,
     visualize_price_data,
 )
-from .utils.evaluation_utils import count_evaluations
+from .utils.evaluation_utils import (
+    count_evaluations,
+    build_events,
+    compute_ranks
+    )
 from .utils.plots import (
     plot_quarantine,
     plot_prices,
@@ -18,4 +22,5 @@ from .utils.plots import (
 from .utils.tracker_analysis import (
     load_all_results,
     plot_tracker_comparison,
+    merge_with_tracker_history
 )
