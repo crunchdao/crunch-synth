@@ -24,3 +24,4 @@ from .utils.tracker_analysis import (
     plot_tracker_comparison,
     merge_with_tracker_history
 )
+from .utils.trackers_history import load_and_prepare_trackers_history
