@@ -26,6 +26,15 @@ def load_and_prepare_trackers_history(horizon: int, assets: list[str], evaluatio
     start_time = evaluation_end - timedelta(days=days)
     end_time = evaluation_end
 
+    if df_min_time is not None and start_time < df_min_time:
+        print(
+            "[WARNING] Evaluation start_time is earlier than available tracker history.\n"
+            f"Test window: [{start_time}, {end_time}]\n"
+            f"Tracker history window: [{df_min_time}, {df_max_time}]\n"
+            "Tracker history will NOT be used."
+        )
+        return df_filtered.iloc[0:0]
+
     df_filtered = df_filtered[(df_filtered["performed_at"] > start_time) & (df_filtered["performed_at"] < end_time)].copy()
 
     if df_filtered.empty:
