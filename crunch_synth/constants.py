@@ -13,6 +13,9 @@ SUPPORTED_ASSETS = [
     "TSLAX",    # TSLAX/USD
     "AAPLX",    # AAPLX/USD
     "GOOGLX",   # GOOGLX/USD
+    "XRP",      # XRP/USD
+    "HYPE",     # HYPE/USD
+    "WTIOIL",   # WTIOIL/USDC
 ]
 
 # ------------------------------------------------------------------
@@ -89,6 +92,10 @@ CRPS_BOUNDS = {
         "TSLAX": 5.9,
         "AAPLX": 2.1,
         "GOOGLX": 3.4,
+
+        "XRP": 0.04,
+        "HYPE": 1.1,
+        "WTIOIL": 1.2,
     },
     "num_points": 256
 }

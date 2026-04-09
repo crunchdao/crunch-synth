@@ -14,6 +14,9 @@ The goal is to anticipate how asset prices will evolve by providing not a single
 - **Tesla tokenized stock (TSLAX)**
 - **Apple tokenized stock (AAPLX)**
 - **Alphabet tokenized stock (GOOGLX)**
+- **Ripple (XRP)**
+- **Hyperliquid (HYPE)**
+- **Crude Oil WTI (WTIOIL)**
 
 ## Install
 
@@ -208,12 +211,12 @@ A **prediction round** is defined by **one asset, one forecast horizon** and **o
     - Triggered **hourly** for each asset
     - Step resolutions: {5-minute, 1-hour, 6-hour, 24-hour}
     - Supported assets:
-        ```["BTC", "SOL", "ETH", "XAUT", "SPYX", "NVDAX", "TSLAX", "AAPLX", "GOOGLX"]```
+        ```["BTC", "SOL", "ETH", "XAUT", "SPYX", "NVDAX", "TSLAX", "AAPLX", "GOOGLX", "XRP", "HYPE", "WTIOIL"]```
 - A **1-hour horizon** forecast
     - Triggered **every 12 minutes** for each asset
     - Step resolutions: {1-minute, 5-minute, 15-minute, 30-minute, 1-hour}
     - Supported assets:
-        ```["BTC", "SOL", "ETH", "XAUT"]```
+        ```["BTC", "SOL", "ETH", "XAUT", "HYPE"]```
 
 All required forecasts for a prediction round must be generated within **40 seconds.**
 
