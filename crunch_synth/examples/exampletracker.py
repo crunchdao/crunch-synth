@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # resolutions and evaluate them against realized outcomes.
 
     # Assets to evaluate
-    assets = ["BTC", "SOL"] # Supported assets: "BTC", "SOL", "ETH", "XAUT", "SPYX", "NVDAX", "TSLAX", "AAPLX", "GOOGLX"
+    assets = ["BTC", "SOL"] # Supported assets: "BTC", "SOL", "ETH", "XAUT", "SPYX", "NVDAX", "TSLAX", "AAPLX", "GOOGLX", "XRP", "HYPE", "WTIOIL"
     print("Supported assets:", ", ".join(SUPPORTED_ASSETS))
     print("Selected assets:", ", ".join(assets))
 
