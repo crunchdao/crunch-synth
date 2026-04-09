@@ -92,11 +92,10 @@ CRPS_BOUNDS = {
         "TSLAX": 5.9,
         "AAPLX": 2.1,
         "GOOGLX": 3.4,
-        
-        # TODO: Use real values
-        "XRP": 0.0,
-        "HYPE": 0.0,
-        "WTIOIL": 0.0,
+
+        "XRP": 0.04,
+        "HYPE": 1.1,
+        "WTIOIL": 1.2,
     },
     "num_points": 256
 }
