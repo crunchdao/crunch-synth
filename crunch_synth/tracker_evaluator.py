@@ -9,7 +9,7 @@ from densitypdf import density_pdf
 from crunch_synth.prices import Asset
 from crunch_synth.quarantine import Quarantine, QuarantineGroup
 from crunch_synth.tracker import TrackerBase, PriceData
-from crunch_synth.constants import CRPS_BOUNDS
+from crunch_synth.constants import CRPS_BOUNDS, ASSET_WEIGHTS
 
 
 class TrackerEvaluator:
@@ -220,17 +220,27 @@ class TrackerEvaluator:
 
     def overall_score(self):
         """
-        Return the mean crps score across all assets together.
+        Return the weighted mean crps score across all assets.
+        Assets are weighted according to ASSET_WEIGHTS.
+        Returns None if any asset is missing from ASSET_WEIGHTS.
         """
-        all_scores = []
+        weighted_sum = 0.0
+        total_weight = 0.0
 
-        for asset_scores in self.scores.values():
-            all_scores.extend(s for _, s in asset_scores)
+        for asset, asset_scores in self.scores.items():
+            if not asset_scores:
+                continue
+            if asset not in ASSET_WEIGHTS:
+                return None
+            w = ASSET_WEIGHTS[asset]
+            asset_mean = float(np.mean([s for _, s in asset_scores]))
+            weighted_sum += w * asset_mean
+            total_weight += w
 
-        if not all_scores:
+        if total_weight == 0.0:
             return 0.0
 
-        return float(np.mean(all_scores))
+        return weighted_sum / total_weight
 
     
     def to_json(self, horizon: int, steps: list[int], interval: int, base_dir="results"):

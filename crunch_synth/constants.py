@@ -102,6 +102,26 @@ CRPS_BOUNDS = {
 # ------------------------------------------------------------------
 
 
+# ------------------------------------------------------------------
+# Per-asset weighting coefficients for score aggregation.
+# Higher weight = asset contributes more to the overall score.
+# BTC is the baseline (1.0).
+ASSET_WEIGHTS = {
+    "BTC": 1.0,
+    "ETH": 0.7064366394033871,
+    "XAUT": 1.7370922597118699,
+    "SOL": 0.6310037175639559,
+    "SPYX": 3.437935601155441,
+    "NVDAX": 1.6028217601617174,
+    "TSLAX": 1.6068755936957768,
+    "AAPLX": 2.0916380815843123,
+    "GOOGLX": 1.6827392777257926,
+    "XRP": 0.5658394110809131,
+    "HYPE": 0.4784547133706857,
+    "WTIOIL": 0.8475062847978935,
+}
+# ------------------------------------------------------------------
+
 # Maximum number of mixture components allowed per predictive distribution
 # The limit may be increased in the future.
 MAX_DISTRIBUTION_COMPONENTS = 3
