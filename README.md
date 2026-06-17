@@ -208,12 +208,12 @@ In each prediction round, players must submit **a set of density forecasts.**
 
 A **prediction round** is defined by **one asset, one forecast horizon** and **one or more step resolutions.**
 - A **24-hour horizon** forecast
-    - Triggered every **8 minutes** per asset
+    - Triggered **every **36 minutes** per asset
     - Step resolutions: {5-minute, 1-hour, 6-hour, 24-hour}
     - Supported assets:
         ```["BTC", "SOL", "ETH", "XAUT", "SPYX", "NVDAX", "TSLAX", "AAPLX", "GOOGLX", "XRP", "HYPE", "WTIOIL"]```
 - A **1-hour horizon** forecast
-    - Triggered **every **36 minutes** per asset
+    - Triggered every **8 minutes** per asset
     - Step resolutions: {1-minute, 5-minute, 15-minute, 30-minute, 1-hour}
     - Supported assets:
         ```["BTC", "SOL", "ETH", "XAUT", "HYPE"]```
