@@ -1,0 +1,11 @@
+{
+  "benchmark_player_name": "synth",
+  "benchmark_model_name": "benchmarktracker",
+  "col_score": "anchor",
+  "col_rank": "rank",
+  "alpha": 1.0,
+  "apply_top_k_participants": true,
+  "top_k_participants": 4,
+  "use_benchmark_cutoff": false,
+  "week_reward_pool": 392.7865963902861
+}

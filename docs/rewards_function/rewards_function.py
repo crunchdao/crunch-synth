@@ -2,18 +2,25 @@
 Reward Function Demonstration
 
 This script demonstrates how rewards are distributed on the crunch-synth leaderboard.
+Matches https://docs.crunchdao.com/real-time-competitions/competitions/synth#payouts
 
 Process:
-- Rewards are distributed every week.
-- Total reward pool is fixed.
-- Rewards are split across prediction horizons (1H / 24H).
-- Only the best model per participant is rewarded.
-- Only models beating the benchmark receive rewards.
-- Rewards follow an exponential distribution based on rank.
+- Rewards are distributed every 7+1 days.
+- Reward pool is fixed *per period* but varies week to week (real mining rewards).
+- Rewards are split 50/50 across prediction horizons (1H / 24H).
+- Only the best model per participant is rewarded (each player may run up to 2 active models).
+- The benchmark model is excluded from payouts; its score is used only as a cutoff.
+- Only models beating the benchmark receive rewards (if use_benchmark_cutoff is set).
+- Top 4 participants per horizon are paid (max 8 players total), exponentially weighted by rank.
 """
+
+import json
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
+
+EXAMPLE_DATA_DIR = Path(__file__).parent / "example_data"
 
 
 # Utility Functions
@@ -68,18 +75,17 @@ def compute_exponential_rewards(
     config_rewards: dict,
 ) -> pd.DataFrame:
     """
-    Exponential reward function with benchmark cutoff.
+    Exponential reward function — top-K ensembling model payout.
 
     - Fixed reward pool is allocated for each payout period.
-    - The top 10 participants receive 100% of the pot.
-    - Only models outperforming the benchmark model (synth:benchmarktracker) are rewarded.
-    - Models with a score below or equal to the benchmark at payout time are included in
-      calculations but receive no payout, leaving any fraction of the pool tied to lower-performing models undistributed.
+    - The top K participants (configured via top_k_participants) receive 100% of the pot.
+    - The benchmark model (synth:benchmarktracker) is excluded from payouts because
+      it was used as the ensembling base during the week and already generated its
+      rewards through that role; its leaderboard position does not gate other models.
 
     # Payout logic:
-    - All valid anchor scores participate in normalization
-    - Only top k models strictly above benchmark receive payout
-    - Undistributed mass is left unallocated
+    - Benchmark model is removed from the eligible pool
+    - Only top K models receive payout (exponential weighting by rank)
     """
 
     df = df.copy()
@@ -91,20 +97,30 @@ def compute_exponential_rewards(
     # for one participant, we reward only the best of the 2 models
     df = keep_best_model_per_player(df, col_score=config_rewards["col_score"], col_rank=config_rewards["col_rank"])
 
-    # Find benchmark model
+    # --- extract benchmark score, then remove it from the pool ---
+    # The benchmark score is still used as a quality cutoff, but the benchmark
+    # model itself is excluded so it cannot occupy a top-k slot.
     benchmark_mask = (
         (df["player_name"] == config_rewards["benchmark_player_name"]) &
         (df["model_name"] == config_rewards["benchmark_model_name"])
     )
 
     if not benchmark_mask.any():
-        raise ValueError("Benchmark model not found")
+        if config_rewards["use_benchmark_cutoff"]:
+            raise ValueError("Benchmark model not found")
+        print("Benchmark not found — skipping exclusion (no cutoff mode).")
+    else:
+        benchmark_score = df.loc[benchmark_mask, config_rewards["col_score"]].iloc[0]
 
-    # Extract the benchmark anchor score
-    benchmark_score = df.loc[benchmark_mask, config_rewards["col_score"]].iloc[0]
+        # Remove benchmark from the pool and recompute ranks
+        df = df[~benchmark_mask].reset_index(drop=True)
+        df[config_rewards["col_rank"]] = df[config_rewards["col_score"]].rank(
+            method="first", ascending=False
+        ).fillna(len(df)).astype(int)
 
-    # Keep only models above benchmark
-    df = df[df[config_rewards["col_score"]] > benchmark_score]
+        # Keep only models that outperform the benchmark score
+        if config_rewards["use_benchmark_cutoff"]:
+            df = df[df[config_rewards["col_score"]] > benchmark_score]
 
     # keep only top K participants
     if config_rewards["apply_top_k_participants"]:
@@ -161,14 +177,17 @@ def compute_rewards_per_horizon(df_leaderboard, config_rewards):
 
 
 # Configs
-
-# - $30K over the first 4 months followed by real mining rewards from Synth Miners (currently up to 50K / months)
-# - Rewards are distributed based on Anchor score every 7 days (payout on Monday)
-# - Fixed reward pool is allocated for each payout period.
-# - Rewards are split per horizon (1H and 24H separated 50/50)
-# - For each horizon, only the top 10 participants are rewarded (for one participant, we reward only the best of the 2 models).
-# - Only models outperforming the benchmark model (synth:benchmarktracker) are rewarded.
-# - Models with a score below or equal to the benchmark at payout time are included in calculations but receive no payout, leaving any fraction of the pool tied to lower-performing models undistributed.
+#
+# - Reward pool comes from real mining rewards from Synth Miners, so it varies
+#   week to week.
+# - A $500/month hosting fee and a 20% platform fee (after hosting) are deducted first.
+# - Rewards are distributed based on Anchor CRPS every 7+1 days.
+# - Rewards are split per horizon (1H and 24H separated 50/50).
+# - Maximum of 8 players receive 100% of the pot: top 4 of the 1H horizon,
+#   top 4 of the 24H horizon (for one participant, we reward only the best of
+#   their up-to-2 active models).
+# - The benchmark model (synth:benchmarktracker) is excluded from payouts; its
+#   score can optionally still be used as a cutoff (use_benchmark_cutoff below).
 
 config_rewards = {
     # the benchmark model
@@ -180,19 +199,20 @@ config_rewards = {
     # Column rank
     "col_rank": "rank",
 
-    # weight computation
-    # "score" → exp(alpha * score)
-    # "rank"  → exp(alpha / rank)
-    "weight_mode": "rank",   # "score" or "rank"
-
     # Controls steepness of the exponential curve (higher = more top-heavy)
+    # weight = exp(alpha / rank)
     "alpha": 1.0,
 
     # Whether to restrict rewards to the top K ranked participants
     "apply_top_k_participants": True,
-    "top_k_participants": 10,
+    "top_k_participants": 4,  # per horizon -> max 8 players paid overall
 
-    # Total reward pool to distribute for the week
+    # Whether models must strictly outperform the benchmark score to be paid.
+    # The benchmark model itself is always excluded from the payout pool.
+    "use_benchmark_cutoff": True,
+
+    # Total reward pool to distribute for the week (illustrative value — real
+    # pool comes from mining rewards and varies)
     "week_reward_pool": 2500
 }
 
@@ -237,9 +257,23 @@ df_leaderboard = pd.DataFrame([
     },
 ])
 
+# Real Example
+# example_data/ holds a real leaderboard + rewards_config snapshot from a past
+# checkpoint (LBR_20260608_115923.520 / CKP_20260608_120000). Running this
+# script against it reproduces that checkpoint's reward_entries exactly.
+def load_example_data():
+    leaderboard = json.loads((EXAMPLE_DATA_DIR / "leaderboard.json").read_text())
+    config = json.loads((EXAMPLE_DATA_DIR / "config.json").read_text())
+    return pd.DataFrame(leaderboard), config
+
+
 # Run Example
 
 if __name__ == "__main__":
+    import sys
+
+    if "--real" in sys.argv:
+        df_leaderboard, config_rewards = load_example_data()
 
     rewards = compute_rewards_per_horizon(
         df_leaderboard,
