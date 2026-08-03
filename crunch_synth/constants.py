@@ -8,7 +8,6 @@ SUPPORTED_ASSETS = [
     "ETH",      # ETH/USD
     "XAUT",     # XAUT/USD
     "SOL",      # SOL/USD
-    "SPYX",     # SPYX/USD
     "SP500",    # SP500/USD
     "NVDAX",    # NVDAX/USD
     "TSLAX",    # TSLAX/USD
@@ -88,7 +87,6 @@ CRPS_BOUNDS = {
         "ETH": 80,
         "XAUT": 33,
 
-        "SPYX": 3.2,
         "SP500": 21,
         "NVDAX": 2.3,
         "TSLAX": 5.9,
@@ -113,7 +111,6 @@ ASSET_WEIGHTS = {
     "ETH": 0.7064366394033871,
     "XAUT": 1.7370922597118699,
     "SOL": 0.6310037175639559,
-    "SPYX": 3.437935601155441,
     "SP500": 3.437935601155441,
     "NVDAX": 1.6028217601617174,
     "TSLAX": 1.6068755936957768,

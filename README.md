@@ -9,8 +9,7 @@ The goal is to anticipate how asset prices will evolve by providing not a single
 - **Ethereum (ETH)**
 - **Solana (SOL)**
 - **Tether Gold (XAUT)**
-- **SP500 tokenized ETF (SPYX)** — being phased out, replaced by S&P 500 Index (SP500)
-- **S&P 500 Index (SP500)**
+- **S&P 500 Index (SP500)** (which replaced SPYX)
 - **NVIDIA tokenized stock (NVDAX)**
 - **Tesla tokenized stock (TSLAX)**
 - **Apple tokenized stock (AAPLX)**
@@ -209,15 +208,15 @@ In each prediction round, players must submit **a set of density forecasts.**
 
 A **prediction round** is defined by **one asset, one forecast horizon** and **one or more step resolutions.**
 - A **24-hour horizon** forecast
-    - Triggered **every **36 minutes** per asset
+    - Triggered **every **39 minutes** per asset
     - Step resolutions: {5-minute, 1-hour, 6-hour, 24-hour}
     - Supported assets:
-        ```["BTC", "SOL", "ETH", "XAUT", "SPYX", "SP500", "NVDAX", "TSLAX", "AAPLX", "GOOGLX", "XRP", "HYPE", "WTIOIL"]```
+        ```["BTC", "SOL", "ETH", "XAUT", "SP500", "NVDAX", "TSLAX", "AAPLX", "GOOGLX", "XRP", "HYPE", "WTIOIL"]```
 - A **1-hour horizon** forecast
     - Triggered every **8 minutes** per asset
     - Step resolutions: {1-minute, 5-minute, 15-minute, 30-minute, 1-hour}
     - Supported assets:
-        ```["BTC", "SOL", "ETH", "XAUT", "HYPE"]```
+        ```["BTC", "SOL", "ETH", "XRP", "HYPE"]```
 
 All required forecasts for a prediction round must be generated within **40 seconds.**
 
