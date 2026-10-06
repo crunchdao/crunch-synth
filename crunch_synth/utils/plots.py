@@ -254,3 +254,83 @@ def plot_scores(data):
 
     # Show the graph
     fig.show()
+
+def plot_volatility(asset, quarantine_entry, prices: PriceStore):
+    """
+    Plot the volatility CRPS breakdown of one 1h prediction (live 1h scoring
+    adds this term, see `crunch_synth.volatility`).
+
+    For every scored block (the full hour, four 15-minute blocks and twelve
+    5-minute blocks), the box shows the volatility of the paths simulated from
+    the predicted densities and the marker the realized volatility.
+
+    Parameters
+    ----------
+    asset : str
+        Asset symbol, e.g., "BTC".
+    quarantine_entry : tuple
+        Tuple of (timestamp, predictions, steps), as returned by
+        `TrackerEvaluator.evaluate_quarantine()`.
+    prices : PriceStore
+        Object that holds historical price data for the asset.
+    """
+    import plotly.graph_objects as go
+    from crunch_synth.volatility import (
+        VOL_CRPS_ASSETS, VOL_SCORING_BLOCKS, block_volatilities, crps_ensemble, get_interval_steps, score_volatility,
+    )
+
+    result = score_volatility(asset, quarantine_entry, prices)
+    if result is None:
+        print(f"No volatility score for this prediction: only 1h predictions on {sorted(VOL_CRPS_ASSETS)} "
+              "with realized prices over the hour are volatility-scored.")
+        return
+
+    sim_paths = result["simulated_paths"]
+    real_path = result["realized_path"]
+    time_increment = result["time_increment"]
+    start_time = pd.to_datetime(quarantine_entry[0] - time_increment * (len(real_path) - 1), unit="s", utc=True)
+
+    fig = go.Figure()
+    for name, (block_seconds, weight) in VOL_SCORING_BLOCKS.items():
+        block_steps = get_interval_steps(block_seconds, time_increment)
+        simulated_vol = block_volatilities(sim_paths, block_steps)
+        real_vol = block_volatilities(real_path.reshape(1, -1), block_steps)[0]
+        minutes = block_seconds // 60
+
+        for block in range(real_vol.size):
+            block_start = start_time + pd.Timedelta(seconds=block * block_seconds)
+            label = f"{minutes}m {block_start:%H:%M}"
+            crps = crps_ensemble(real_vol[block], simulated_vol[:, block])
+
+            fig.add_trace(go.Box(
+                y=simulated_vol[:, block],
+                name=label,
+                marker_color="orange",
+                boxpoints=False,
+                showlegend=False,
+                hovertemplate=f"{label}<br>Simulated vol: %{{y:.2f}} bps<extra></extra>",
+            ))
+            fig.add_trace(go.Scatter(
+                x=[label],
+                y=[real_vol[block]],
+                mode="markers",
+                marker=dict(color="royalblue", size=10, symbol="diamond"),
+                name="Realized volatility",
+                legendgroup="realized",
+                showlegend=(name == "vol_60min" and block == 0),
+                hovertemplate=f"{label}<br>Realized vol: %{{y:.2f}} bps<br>CRPS: {crps:.3f} (weight {weight:.3f})<extra></extra>",
+            ))
+
+    title = (
+        f"{asset} 1h volatility CRPS from {start_time:%Y-%m-%d %H:%M} UTC: "
+        f"{result['vol_crps']:.3f} (adds {result['vol_score']:.4f} to the score)"
+    )
+    fig.update_layout(
+        title=dict(text=title, x=0.5, xanchor="center", font=dict(size=18)),
+        xaxis=dict(title="Block (size and start time)", showgrid=True, gridcolor="lightgrey"),
+        yaxis=dict(title="Volatility of 1-minute returns (bps)", showgrid=True, gridcolor="lightgrey"),
+        plot_bgcolor="white",
+        legend=dict(x=1.02, y=1, bordercolor="Black", borderwidth=1),
+    )
+
+    fig.show()

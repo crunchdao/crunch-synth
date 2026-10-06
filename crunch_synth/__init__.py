@@ -3,6 +3,7 @@ from .tracker_evaluator import TrackerEvaluator
 from .constants import FORECAST_PROFILES, SUPPORTED_ASSETS
 from .price_provider import pricedb
 from .prices import Asset, PriceData, PriceStore
+from .volatility import VOL_CRPS_ASSETS, VOL_CRPS_HORIZON, score_volatility
 
 from .utils.data import (
     load_test_prices_once,
@@ -18,6 +19,7 @@ from .utils.plots import (
     plot_quarantine,
     plot_prices,
     plot_scores,
+    plot_volatility,
 )
 from .utils.tracker_analysis import (
     load_all_results,
