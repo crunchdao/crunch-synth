@@ -100,10 +100,9 @@ def simulate_points(
         dist_class = getattr(st, dist_name, None)
         if dist_class is None:
             raise ValueError(f"Unknown scipy distribution '{dist_name}'.")
-        dist_obj = dist_class(**params)
-
+        # Unfrozen rvs: same draws as dist_class(**params).rvs(), ~3x faster
         loc_val = params.get("loc", 0.0)
-        samples = dist_obj.rvs(size=num_simulations)
+        samples = dist_class.rvs(size=num_simulations, **params)
         locs = np.full(num_simulations, loc_val)
         return samples, locs
 
@@ -128,8 +127,11 @@ def simulate_points(
         dist_class = getattr(st, dist_name, None)
         if dist_class is None:
             raise ValueError(f"Unknown builtin distribution '{dist_name}'.")
-        dist_obj = dist_class(**params)
-        samples = dist_obj.rvs(size=num_simulations)
+        # Ignore unknown keys, like density_pdf (which reads only the params it
+        # needs): an extra key (e.g. "df" on "norm") must not make sampling fail
+        # where the price CRPS succeeds
+        accepted = {"loc", "scale", *(s.strip() for s in (dist_class.shapes or "").split(",") if s.strip())}
+        samples = dist_class.rvs(size=num_simulations, **{k: v for k, v in params.items() if k in accepted})
         locs = np.full(num_simulations, params.get("loc", 0.0))
         return samples, locs
 
@@ -227,6 +229,75 @@ def simulate_paths(
     q_high = np.quantile(paths, quantile_range[1], axis=0)
 
     return {"times": times, "paths": paths, "mean": mean_path, "q_low_paths": q_low, "q_high_paths": q_high, "quantile_range": quantile_range}
+
+
+def condition_sum(children, target_sum):
+    """
+    Enforces sum(children) == target_sum
+    Minimal L2 adjustment (optimal transport).
+    """
+    correction = (target_sum - np.sum(children)) / len(children)
+    return children + correction
+
+
+def combine_multiscale_simulations(
+    dict_paths: dict,
+    step_config: dict
+):
+    """
+    Hierarchical conditional coupling across multiple time resolutions.
+
+    Each finer resolution is shifted so that every group of its increments sums
+    to the matching increment of the coarser resolution (see `condition_sum`,
+    applied here to all paths and groups at once).
+
+    All inputs are INCREMENTS (not prices).
+
+    Parameters
+    ----------
+    dict_paths : dict[str, np.ndarray]
+        Mapping resolution -> array of shape (N, n_steps).
+    step_config : dict[str, int]
+        Mapping resolution -> step size in seconds.
+
+    Returns
+    -------
+    final_paths : np.ndarray
+        Shape (N, T+1), integrated price paths at finest resolution.
+    """
+
+    # --- Sort resolutions from coarse -> fine ---
+    levels = sorted(step_config.keys(), key=lambda k: step_config[k], reverse=True)
+
+    # Finest resolution = smallest step
+    finest_key = min(step_config, key=step_config.get)
+
+    N = next(iter(dict_paths.values())).shape[0]
+    finest_steps = dict_paths[finest_key].shape[1]
+
+    # Working copy (will be progressively constrained)
+    constrained = {k: np.array(dict_paths[k], dtype=float) for k in levels}
+
+    # --- Enforce constraints top-down ---
+    for parent, child in zip(levels[:-1], levels[1:]):
+        parent_step = step_config[parent]
+        child_step = step_config[child]
+
+        ratio = parent_step // child_step
+        parent_steps = constrained[parent].shape[1]
+        if ratio * parent_steps != constrained[child].shape[1]:
+            raise ValueError(f"Incompatible steps between {parent} and {child}")
+
+        groups = constrained[child].reshape(N, parent_steps, ratio)
+        correction = (constrained[parent] - groups.sum(axis=2)) / ratio
+        constrained[child] = (groups + correction[:, :, None]).reshape(N, parent_steps * ratio)
+
+    # --- Integrate finest increments ---
+    final_increments = constrained[finest_key]
+    final_paths = np.zeros((N, finest_steps + 1))
+    final_paths[:, 1:] = np.cumsum(final_increments, axis=1)
+
+    return final_paths
 
 
 if __name__ == "__main__":

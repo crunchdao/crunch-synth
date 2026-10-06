@@ -10,6 +10,7 @@ from crunch_synth.prices import Asset
 from crunch_synth.quarantine import Quarantine, QuarantineGroup
 from crunch_synth.tracker import TrackerBase, PriceData
 from crunch_synth.constants import CRPS_BOUNDS, ASSET_WEIGHTS
+from crunch_synth.volatility import score_volatility, warn_volatility_failure
 
 
 class TrackerEvaluator:
@@ -17,13 +18,16 @@ class TrackerEvaluator:
     Evaluates a tracker by comparing its predictions to realized asset returns
     using scoring: CRPS (Continuous Ranked Probability Score).
 
+    On the 1h horizon (BTC, ETH, SOL, XRP, HYPE), the score also includes the
+    volatility CRPS term, like live scoring (see `crunch_synth.volatility`).
+
     This class also handles:
     - Quarantine: delaying scoring until sufficient future data is available.
     - Rolling evaluation windows for recent CRPS computation.
     - Storing timestamped scores for per-asset and global evaluation.
     """
 
-    def __init__(self, tracker: TrackerBase, score_window_size: int = 100):
+    def __init__(self, tracker: TrackerBase, score_window_size: int = 100, score_volatility: bool = True):
         """
         Parameters
         ----------
@@ -32,6 +36,9 @@ class TrackerEvaluator:
         score_window_size : int, optional
             The number of most recent scores to retain for computing a
             rolling recent CRPS per asset.
+        score_volatility : bool, optional
+            Add the volatility CRPS term to 1h scores, as live scoring does.
+            Set to False for price CRPS only (scores before version 0.15.0).
         """
 
         super().__init__()
@@ -42,6 +49,11 @@ class TrackerEvaluator:
         self.scores = defaultdict(list)
         # Store recent scores per asset: {asset → deque([(timestamp, score)])}
         self.latest_scores = defaultdict(lambda: deque(maxlen=score_window_size))
+        self.score_volatility = score_volatility
+        # Volatility part of the 1h scores (already included in `scores`):
+        # {asset → [(timestamp, vol_score), ...]}
+        self.vol_scores = defaultdict(list)
+        self._vol_failure_warned = set()
 
     def tick(self, data: PriceData):
         """ Feed new market data to the tracker. 
@@ -93,14 +105,52 @@ class TrackerEvaluator:
             return
 
         # Compute score for quarantined predictions
-        score = self._score_quarantines(asset, quarantines_predictions)
+        score, vol_score = self._score_quarantines_with_volatility(asset, quarantines_predictions)
         
         # Store timestamped scores
         self.scores[asset].append((ts, score))
         self.latest_scores[asset].append((ts, score))  # Maintain a rolling window of recent scores
+        if vol_score is not None:
+            self.vol_scores[asset].append((ts, vol_score))
 
         return quarantines_predictions
     
+    def _score_quarantines_with_volatility(self, asset: Asset, quarantines_predictions: list):
+        """
+        Price CRPS of the quarantined predictions (`_score_quarantines`) plus,
+        for volatility-scored 1h predictions, their volatility term.
+
+        Returns
+        -------
+        (float, float | None)
+            Mean total score, and the mean volatility part of it (None if no
+            prediction was volatility-scored).
+        """
+        price_score = self._score_quarantines(asset, quarantines_predictions)
+        if not self.score_volatility:
+            return price_score, None
+
+        vol_terms = []
+        vol_scored = False
+        for quarantine_entry in quarantines_predictions:
+            try:
+                result = score_volatility(asset, quarantine_entry, self.tracker.prices)
+            except ValueError as error:
+                if asset not in self._vol_failure_warned:
+                    self._vol_failure_warned.add(asset)
+                    warn_volatility_failure(asset, quarantine_entry[0], error)
+                result = None
+
+            # Price CRPS only for a prediction without a volatility score
+            vol_terms.append(result["vol_score"] if result else 0.0)
+            vol_scored = vol_scored or result is not None
+
+        if not vol_scored:
+            return price_score, None
+
+        vol_score = float(np.mean(vol_terms))
+        return price_score + vol_score, vol_score
+
     def _score_quarantines(self, asset: Asset, quarantines_predictions: list):
         """
         Compute CRPS scores for all quarantined predictions of a given asset.
@@ -209,6 +259,16 @@ class TrackerEvaluator:
         values = [s for _, s in self.latest_scores[asset]]
         return float(np.mean(values))
     
+    def vol_score_asset(self, asset: Asset):
+        """
+        Return the mean volatility part of the scores (1h horizon only).
+        It is already included in `overall_score_asset`.
+        """
+        if not self.vol_scores[asset]:
+            return 0.0
+        values = [s for _, s in self.vol_scores[asset]]
+        return float(np.mean(values))
+
     def overall_score_asset(self, asset: Asset):
         """
         Return the mean crps score over all recorded scores.
@@ -269,7 +329,13 @@ class TrackerEvaluator:
             "steps": steps,
             "interval": interval,
             "asset_scores": assets_json,
+            "score_volatility": self.score_volatility,
         }
+        if any(self.vol_scores.values()):
+            data["asset_vol_scores"] = {
+                asset: [{"ts": ts, "vol_score": float(vol)} for ts, vol in records]
+                for asset, records in self.vol_scores.items()
+            }
         
         # Format directory name: "results/2025-02-05T12-00-00_to_2025-02-12T12-00-00/"
         def fmt(ts):

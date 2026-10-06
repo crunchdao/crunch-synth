@@ -223,6 +223,11 @@ All required forecasts for a prediction round must be generated within **40 seco
 ## Scoring
 - Once the full horizon has passed, each prediction is scored using a **[CRPS](https://en.wikipedia.org/wiki/Scoring_rule#:~:text=%5B8%5D-,Continuous%20ranked%20probability%20score,-%5Bedit%5D) scoring function**.
 - A lower **CRPS score** reflects more accurate predictions.
+- **1-hour horizon (BTC, ETH, SOL, XRP, HYPE): volatility CRPS.** As on [Synth](https://synthdata.co/research/introducing-volatility-crps-updated), the 1h score is `price CRPS + volatility CRPS`:
+  - 1,000 price paths are simulated from your densities (all step resolutions combined)
+  - the volatility of 1-minute returns is computed over the full hour, four 15-minute blocks and twelve 5-minute blocks
+  - each block's realized volatility is scored with CRPS against your simulated ones (weighted with λ = 5.25)
+  - it is usually a small part of the score (~1-3%), but it rewards well-calibrated **per-minute volatility** and **consistent scales across step resolutions**
 - Leaderboard ranking is based on a **7-day rolling average** of CRPS scores across **all assets and horizons**, evaluated **relative to other participants**:
   - for each prediction round, the **best CRPS score receives a normalized score of 1**
   - the **worst 5% of CRPS scores receive a score of 0**
@@ -234,6 +239,7 @@ TrackerEvaluator allows you to track your model's performance over time locally 
 - Overall CRPS score
 - Recent CRPS score
 - Quarantine predictions (predictions stored and evaluated at a later time)
+- The volatility CRPS part of 1h scores (`vol_scores`, `vol_score_asset()`), already included in the scores above
 
 **A lower CRPS score reflects more accurate predictions.**
 
@@ -253,6 +259,24 @@ predictions = tracker_evaluator.predict("SOL", horizon=3600*24,
 print(f"My overall normalized CRPS score: {tracker_evaluator.overall_score("SOL"):.4f}")
 ```
 
+
+### Volatility CRPS (1h horizon)
+
+On the 1h horizon, `TrackerEvaluator` adds the volatility CRPS term to the score, like live scoring. It is converted into price-CRPS units with a typical live factor, so local 1h scores are close to, but not exactly, the live ones. Use `TrackerEvaluator(tracker, score_volatility=False)` for price CRPS only (scores from `crunch_synth` < 0.15.0).
+
+```python
+from crunch_synth import TrackerEvaluator, plot_volatility
+
+tracker_evaluator = TrackerEvaluator(GaussianStepTracker())
+tracker_evaluator.tick({"BTC": history})  # prices up to the prediction time
+tracker_evaluator.enqueue_predictions("BTC", horizon=3600, steps=[60, 300, 900, 1800, 3600])
+tracker_evaluator.tick({"BTC": next_hour})  # the following hour of prices
+scored = tracker_evaluator.evaluate_quarantine("BTC")
+
+print(f"Volatility part of the score: {tracker_evaluator.vol_score_asset('BTC'):.4f}")
+# Per block: volatility of your simulated paths (box) vs realized volatility (diamond)
+plot_volatility("BTC", scored[0], prices=tracker_evaluator.tracker.prices)
+```
 
 ## Tracker examples 
 See [Tracker examples](crunch_synth/examples). There are:
