@@ -278,6 +278,22 @@ print(f"Volatility part of the score: {tracker_evaluator.vol_score_asset('BTC'):
 plot_volatility("BTC", scored[0], prices=tracker_evaluator.tracker.prices)
 ```
 
+### Synth score: how your tracker would do on Synth itself
+
+The scores above rank trackers against each other. The ensemble built from your trackers is mined on [Synth](https://synthdata.co), where it competes with every Synth miner. `evaluate_synth_score` replays real Synth prompts the way our miner answers them (prices known at the validator's request, 1,000 paths built from your densities), scores them with Synth's own CRPS and compares you with the best Synth miner of each prompt. It returns the same 0-1 **Synth score** as the leaderboard columns (1 = best of all Synth miners on every prompt; Synth's top miners score around 0.5 on 24h) and where you would rank among Synth's miners.
+
+```python
+from datetime import datetime, timedelta, timezone
+from crunch_synth import evaluate_synth_score, FORECAST_PROFILES
+
+profile = FORECAST_PROFILES["24h"]
+end = datetime.now(timezone.utc) - timedelta(seconds=profile["horizon"] + 3600)  # resolved prompts only
+result = evaluate_synth_score(GaussianStepTracker(), "BTC", profile["horizon"], profile["steps"],
+                             start=end - timedelta(days=3), end=end, max_prompts=20)
+print(result)          # score, mean gap to Synth's best, rank among Synth miners
+result.prompts         # one row per Synth prompt
+```
+
 ## Tracker examples 
 See [Tracker examples](crunch_synth/examples). There are:
 
