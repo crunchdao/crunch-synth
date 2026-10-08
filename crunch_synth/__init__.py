@@ -4,6 +4,7 @@ from .constants import FORECAST_PROFILES, SUPPORTED_ASSETS
 from .price_provider import pricedb
 from .prices import Asset, PriceData, PriceStore
 from .volatility import VOL_CRPS_ASSETS, VOL_CRPS_HORIZON, score_volatility
+from .synth_score import evaluate_synth_score, SynthScoreResult, fetch_synth_prompts
 
 from .utils.data import (
     load_test_prices_once,

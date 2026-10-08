@@ -4,6 +4,7 @@ import numpy as np
 from crunch_synth.utils.densitytosimulations import simulate_paths
 from crunch_synth.prices import PriceStore
 
+
 def plot_quarantine(asset, quarantine_entry, step: int, prices: PriceStore, mode="direct", title="", lookback_seconds=3600):
     """
     Plot the predicted price/return distribution (quarantine) for a given asset.
@@ -43,10 +44,10 @@ def plot_quarantine(asset, quarantine_entry, step: int, prices: PriceStore, mode
     start_price = prices.get_closest_price(asset, ts - step * len(predictions))[1]
 
     # Simulate multiple paths based on the predictions
-    # This creates a Monte Carlo distribution of potential price trajectories   
+    # This creates a Monte Carlo distribution of potential price trajectories
     simulations = simulate_paths(
         predictions,
-        start_point=0.0 if mode=="direct" else start_price,
+        start_point=0.0 if mode == "direct" else start_price,
         num_paths=10000,
         step_minutes=None,
         start_time=None,
@@ -89,10 +90,9 @@ def plot_quarantine(asset, quarantine_entry, step: int, prices: PriceStore, mode
     })
     history_df["time"] = pd.to_datetime(history_df["ts"], unit="s", utc=True)
 
-
     import plotly.graph_objects as go
 
-    title=f"Predicted {asset} {'return price' if mode=="direct" else "price"} distribution (horizon={horizon}s | step={step}s) at {scales_df["time"].iloc[0]}"
+    title = f"Predicted {asset} {'return' if mode=='direct' else 'price'} distribution (horizon={horizon}s | step={step}s) at {scales_df['time'].iloc[0]}"
 
     # Create a filled band between q05 and q95
     fig = go.Figure()
@@ -115,7 +115,7 @@ def plot_quarantine(asset, quarantine_entry, step: int, prices: PriceStore, mode
         line=dict(width=0),
         fill='tonexty',
         fillcolor='rgba(255,165,0,0.3)',
-        name=f"Predicted range ({round(100*(simulations["quantile_range"][1] - simulations["quantile_range"][0]))}%)"
+        name=f"Predicted range ({round(100*(simulations['quantile_range'][1] - simulations['quantile_range'][0]))}%)"
     ))
 
     # Mean prediction line with shadow effect
@@ -130,26 +130,26 @@ def plot_quarantine(asset, quarantine_entry, step: int, prices: PriceStore, mode
     # Actual price / returns line with markers
     fig.add_trace(go.Scatter(
         x=scales_df["time"],
-        y=scales_df["return"] if mode=="direct" else scales_df["price"],
+        y=scales_df["return"] if mode == "direct" else scales_df["price"],
         mode='lines',  # 'lines+markers'
         line=dict(color='royalblue', width=2),
         marker=dict(size=4, opacity=0.7),
-        name='Observed relative price' if mode=="direct" else "Observed price"
+        name='Observed relative price' if mode == "direct" else "Observed price"
     ))
 
-    if not mode=="direct":
+    if not mode == "direct":
         # Historical price (pre-forecast context)
         fig.add_trace(go.Scatter(
             x=history_df["time"],
             y=history_df["price"],
             mode="lines",
-            line=dict(color="grey", width=2),#, dash="dot"),
+            line=dict(color="grey", width=2),  # , dash="dot"),
             name="Historical price",
         ))
 
-    if not mode=="direct":
+    if not mode == "direct":
         fig.add_vline(
-            x=scales_df["time"].iloc[0].timestamp()*1000 - 3600*1000,
+            x=scales_df["time"].iloc[0].timestamp() * 1000 - 3600 * 1000,
             line_dash="dash",
             line_color="black",
             annotation_text="Forecast origin",
@@ -174,7 +174,7 @@ def plot_quarantine(asset, quarantine_entry, step: int, prices: PriceStore, mode
         ),
         hovermode='x unified',
         xaxis=dict(title='Time', showgrid=True, gridcolor='lightgrey'),
-        yaxis=dict(title='Return' if mode=="direct" else 'Price', showgrid=True, gridcolor='lightgrey'),
+        yaxis=dict(title='Return' if mode == "direct" else 'Price', showgrid=True, gridcolor='lightgrey'),
         plot_bgcolor='white',
         legend=dict(x=1.02, y=1, bordercolor='Black', borderwidth=1)
     )
@@ -223,6 +223,7 @@ def plot_log_return_prices(data, title):
     # Show the graph
     fig.show()
 
+
 def plot_scores(data):
     import plotly.express as px
 
@@ -241,7 +242,7 @@ def plot_scores(data):
     end_scores = df['time'].iloc[-1]
     assets = df["asset"].unique().tolist()
     title = f"{assets} crps scores from {start_scores} to {end_scores}"
-    
+
     # Create a line graph using Plotly
     fig = px.line(
         df,
@@ -254,6 +255,7 @@ def plot_scores(data):
 
     # Show the graph
     fig.show()
+
 
 def plot_volatility(asset, quarantine_entry, prices: PriceStore):
     """
