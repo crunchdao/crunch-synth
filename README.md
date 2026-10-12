@@ -280,7 +280,7 @@ plot_volatility("BTC", scored[0], prices=tracker_evaluator.tracker.prices)
 
 ### Synth score: how your tracker would do on Synth itself
 
-The scores above rank trackers against each other. The ensemble built from your trackers is mined on [Synth](https://synthdata.co), where it competes with every Synth miner. `evaluate_synth_score` replays real Synth prompts the way our miner answers them (prices known at the validator's request, 1,000 paths built from your densities), scores them with Synth's own CRPS and compares you with the best Synth miner of each prompt. It returns the same 0-1 **Synth score** as the leaderboard columns (1 = best of all Synth miners on every prompt; Synth's top miners score around 0.5 on 24h) and where you would rank among Synth's miners.
+The scores above rank trackers against each other. The ensemble built from your trackers is mined on [Synth](https://synthdata.co), where it competes with every Synth miner. `evaluate_synth_score` replays real Synth prompts the way our miner answers them (prices known at the validator's request, 1,000 paths built from your densities), scores them with Synth's own CRPS and compares you with the best Synth miner of each prompt. It returns the same 0-1 **Synth score** as the leaderboard columns (1 = best of all Synth miners on every prompt; Synth's top miners score around 0.5-0.6 on 24h) and where you would rank among Synth's miners.
 
 ```python
 from datetime import datetime, timedelta, timezone
