@@ -31,7 +31,7 @@ setup(
     packages=find_packages(
         exclude=["tests"],
     ),
-    python_requires=">=3.12",
+    python_requires=">=3.11",
     install_requires=requirements,
     extras_require={
         'test': test_requirements,
