@@ -1,6 +1,7 @@
 pandas
 requests
 numpy
+scipy
 tqdm
 densitypdf
 

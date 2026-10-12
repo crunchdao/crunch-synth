@@ -4,13 +4,12 @@ import os
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 
-from densitypdf import density_pdf
-
 from crunch_synth.prices import Asset
 from crunch_synth.quarantine import Quarantine, QuarantineGroup
 from crunch_synth.tracker import TrackerBase, PriceData
 from crunch_synth.constants import CRPS_BOUNDS, ASSET_WEIGHTS
 from crunch_synth.volatility import score_volatility, warn_volatility_failure
+from crunch_synth.utils.density_pdf import density_pdf_vectorized
 
 
 class TrackerEvaluator:
@@ -359,7 +358,7 @@ if hasattr(np, "trapezoid"):
 else:
     trapezoid = np.trapz
     
-def crps_integral(density_dict, x, t_min=-4000, t_max=4000, num_points=256):
+def crps_integral(density_dict, x, t_min=-4000, t_max=4000, num_points=CRPS_BOUNDS["num_points"]):
     """
     CRPS score (Integrated Quadratic Score) using:
     - single PDF evaluation per grid point
@@ -372,7 +371,13 @@ def crps_integral(density_dict, x, t_min=-4000, t_max=4000, num_points=256):
     dt = ts[1] - ts[0]
 
     # Vectorized PDF computation
-    pdfs = np.array([density_pdf(density_dict, t) for t in ts], dtype=float)
+    pdfs = density_pdf_vectorized(density_dict, ts)
+
+    # Normalize PDF so its integral equals 1, compensating for
+    # truncation (mass outside [t_min, t_max]) and discretization.
+    pdf_integral = trapezoid(pdfs, ts)
+    if pdf_integral > 0:
+        pdfs = pdfs / pdf_integral
 
     # Build CDF by cumulative integration
     cdfs = np.cumsum(pdfs) * dt
