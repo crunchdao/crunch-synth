@@ -46,7 +46,8 @@ def test_crps_ensemble_matches_definition():
 
 
 def test_crps_ensemble_matches_properscoring():
-    properscoring = pytest.importorskip("properscoring")
+    import properscoring  # test dependency: the coordinator's implementation of the volatility term
+
     rng = np.random.default_rng(2)
     x = rng.lognormal(size=1000)
     assert crps_ensemble(1.2, x) == pytest.approx(properscoring.crps_ensemble(1.2, x), rel=1e-10)
