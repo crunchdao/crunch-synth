@@ -17,6 +17,7 @@ The goal is to anticipate how asset prices will evolve by providing not a single
 - **Ripple (XRP)**
 - **Hyperliquid (HYPE)**
 - **Crude Oil WTI (WTIOIL)**
+- **SPCX** (Hyperliquid SPCX/USDC market, 24h horizon only)
 
 ## Install
 
@@ -211,7 +212,7 @@ A **prediction round** is defined by **one asset, one forecast horizon** and **o
     - Triggered **every **39 minutes** per asset
     - Step resolutions: {5-minute, 1-hour, 6-hour, 24-hour}
     - Supported assets:
-        ```["BTC", "SOL", "ETH", "XAUT", "SP500", "NVDAX", "TSLAX", "AAPLX", "GOOGLX", "XRP", "HYPE", "WTIOIL"]```
+        ```["BTC", "SOL", "ETH", "XAUT", "SP500", "NVDAX", "TSLAX", "AAPLX", "GOOGLX", "XRP", "HYPE", "WTIOIL", "SPCX"]```
 - A **1-hour horizon** forecast
     - Triggered every **8 minutes** per asset
     - Step resolutions: {1-minute, 5-minute, 15-minute, 30-minute, 1-hour}
