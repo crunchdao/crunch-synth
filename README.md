@@ -17,7 +17,7 @@ The goal is to anticipate how asset prices will evolve by providing not a single
 - **Ripple (XRP)**
 - **Hyperliquid (HYPE)**
 - **Crude Oil WTI (WTIOIL)**
-- **SPCX** (Hyperliquid SPCX/USDC market, 24h horizon only)
+- **SpaceX tokenized stock (SPCX)**
 
 ## Install
 
