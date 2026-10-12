@@ -5,7 +5,11 @@ from datetime import datetime, timedelta
 def load_and_prepare_trackers_history(horizon: int, assets: list[str], evaluation_end: datetime, days: int):
     """ Load and filter trackers history for a specific evaluation setup from a .csv endpoint """
 
-    source_path = "https://raw.githubusercontent.com/crunchdao/crunch-synth/master/crunch_synth/examples/trackers_history/df_trackers_history.csv"
+    # Live leaderboard scores (raw CRPS, as computed by the coordinator) of every tracker
+    # from 2026-10-05 18:00 to 2026-10-12, predictions resolved within that window; only trackers
+    # with at least 80% of the rounds of an asset/horizon, so their mean scores are comparable.
+    # (df_trackers_history.csv, March 2026 with the previous CRPS method, stays for older versions.)
+    source_path = "https://raw.githubusercontent.com/crunchdao/crunch-synth/master/crunch_synth/examples/trackers_history/df_trackers_history_20261005_20261012.csv.gz"
 
     df = pd.read_csv(source_path)
 
