@@ -119,3 +119,6 @@ class PriceDbClient:
 
 
 pricedb = PriceDbClient()
+
+# deprecated: name before 0.10.0, still imported by older submissions
+shared_pricedb = pricedb
