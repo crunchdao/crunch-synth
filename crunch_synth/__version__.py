@@ -1,6 +1,6 @@
 __title__ = 'crunch-synth'
 __description__ = 'A package for participating in the Crunch-Synth Game on CrunchDAO'
-__version__ = '0.15.1'
+__version__ = '0.16.0'
 __author__ = [
     "Abdennour BOUTRIG",
     "Alexis Gassmann",
